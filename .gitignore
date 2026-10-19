@@ -1,0 +1,4 @@
+.loom/
+node_modules/
+dist/
+.vercel/
