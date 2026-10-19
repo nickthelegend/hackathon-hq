@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, useSyncExternalStore, type FormEvent } from 'react'
 import {
   closestCorners,
   DndContext,
   DragOverlay,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useDroppable,
   useSensor,
   useSensors,
@@ -23,7 +24,9 @@ import {
   Clock3,
   ExternalLink,
   Filter,
+  Gauge,
   GripVertical,
+  Infinity as InfinityIcon,
   Layers3,
   LayoutGrid,
   Plus,
@@ -135,13 +138,74 @@ function daysLeft(value: string | null): number | null {
   return Math.ceil((deadline - today) / 86400000)
 }
 
-function countdown(value: string | null): string {
-  const days = daysLeft(value)
-  if (days === null) return 'TBA'
-  if (days < 0) return 'Closed'
-  if (days === 0) return 'Closing today'
-  if (days === 1) return '1 day left'
-  return `${days} days left`
+// One shared 1s ticker; only <Countdown> subscribes, so cards themselves don't re-render every second.
+const clockListeners = new Set<() => void>()
+let clockNow = Date.now()
+let clockTimer: number | undefined
+function subscribeClock(listener: () => void) {
+  clockListeners.add(listener)
+  if (clockTimer === undefined) {
+    clockNow = Date.now()
+    clockTimer = window.setInterval(() => { clockNow = Date.now(); clockListeners.forEach((notify) => notify()) }, 1000)
+  }
+  return () => {
+    clockListeners.delete(listener)
+    if (clockListeners.size === 0 && clockTimer !== undefined) { window.clearInterval(clockTimer); clockTimer = undefined }
+  }
+}
+function useNow(): number { return useSyncExternalStore(subscribeClock, () => clockNow) }
+
+const URGENT_MS = 72 * 3600 * 1000
+
+// Deadlines are calendar dates; treat them as closing at the end of that day (UTC).
+function deadlineMs(value: string | null): number | null {
+  if (!value) return null
+  const end = Date.parse(`${value}T23:59:59Z`)
+  return Number.isNaN(end) ? null : end
+}
+
+const pad = (value: number) => String(value).padStart(2, '0')
+
+function Countdown({ deadline, rolling }: { deadline: string | null; rolling: boolean }) {
+  const now = useNow()
+  if (rolling) return <span className="countdown is-rolling"><InfinityIcon size={12} />Rolling</span>
+  const end = deadlineMs(deadline)
+  if (end === null) return <span className="countdown is-muted"><Clock3 size={12} />No deadline</span>
+  const left = end - now
+  if (left <= 0) return <span className="countdown is-closed"><Clock3 size={12} />Closed</span>
+  const totalSeconds = Math.floor(left / 1000)
+  const days = Math.floor(totalSeconds / 86400)
+  const hours = Math.floor((totalSeconds % 86400) / 3600)
+  const minutes = Math.floor((totalSeconds % 3600) / 60)
+  const seconds = totalSeconds % 60
+  const urgent = left < URGENT_MS
+  const label = urgent ? `${days * 24 + hours}h ${pad(minutes)}m ${pad(seconds)}s` : `${days}d ${pad(hours)}h ${pad(minutes)}m`
+  return <span className={`countdown ${urgent ? 'is-urgent' : ''}`} title={`Closes ${formatDate(deadline)}, 23:59 UTC`}><Clock3 size={12} /><span className="countdown-value">{label}</span></span>
+}
+
+const statusFill: Record<ColumnId, number> = { discovered: 0, shortlisted: 0, approved: 0.25, building: 0.5, submitted: 0.75, results: 1 }
+
+function StatusIcon({ id }: { id: ColumnId }) {
+  const fill = statusFill[id]
+  const circumference = 2 * Math.PI * 2.5
+  return (
+    <svg className={`status-icon status-${id}`} width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
+      <circle cx="7" cy="7" r="6" fill="none" stroke="currentColor" strokeWidth="1.5" strokeDasharray={id === 'discovered' ? '1.4 1.75' : undefined} />
+      {fill === 1
+        ? <path d="M4.4 7.2l1.8 1.8 3.5-3.7" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+        : fill > 0 && <circle cx="7" cy="7" r="2.5" fill="none" stroke="currentColor" strokeWidth="5" strokeDasharray={`${fill * circumference} ${circumference}`} transform="rotate(-90 7 7)" />}
+    </svg>
+  )
+}
+
+function ProgressRing({ done, total }: { done: number; total: number }) {
+  const circumference = 2 * Math.PI * 5
+  return (
+    <span className="progress-chip" title={`${done} of ${total} checklist steps`}>
+      <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><circle cx="7" cy="7" r="5" className="ring-track" /><circle cx="7" cy="7" r="5" className="ring-value" strokeDasharray={`${(done / total) * circumference} ${circumference}`} transform="rotate(-90 7 7)" /></svg>
+      {done}/{total}
+    </span>
+  )
 }
 
 function prize(item: Hackathon): string { return item.prize || 'TBA' }
@@ -176,24 +240,24 @@ function Badge({ track }: { track: Track }) {
 
 function HackathonCard({ item, onOpen, dragging = false }: { item: Hackathon; onOpen: (id: string) => void; dragging?: boolean }) {
   const progress = item.checklist.filter(Boolean).length
-  const days = daysLeft(item.deadline)
   return (
     <article className={`hack-card ${dragging ? 'is-dragging' : ''}`} onClick={() => onOpen(item.id)}>
-      <div className="card-topline">
+      <div className="card-head">
         <Badge track={item.track} />
-        {item.rolling && <span className="rolling-badge">Rolling</span>}
-        <span className="judge-score-badge">Judge {item.judgeScore === null ? '—' : `${item.judgeScore}/10`}</span>
-        <a className="card-link" href={item.url} target="_blank" rel="noreferrer" aria-label={`Open ${item.name} official page`} onClick={(event) => event.stopPropagation()}><ArrowUpRight size={15} /></a>
+        <span className="score-chip" title="Judge score"><Gauge size={12} />{item.judgeScore === null ? '—' : item.judgeScore}</span>
+        <a className="card-link" href={item.url} target="_blank" rel="noreferrer" aria-label={`Open ${item.name} official page`} onClick={(event) => event.stopPropagation()}><ArrowUpRight size={14} /></a>
       </div>
       <h3>{item.name}</h3>
-      <div className="organizer-line">{item.organizer}<span>·</span>{eventPlace(item)}</div>
-      <div className="card-prize"><Trophy size={14} /><span>{prize(item)}</span><small>in prizes</small></div>
-      <div className="card-meta">
-        <span><CalendarDays size={14} />{item.startDate ? `${formatDate(item.startDate)} – ${item.rolling ? 'Rolling' : formatDate(item.deadline)}` : item.rolling ? 'Rolling' : `Deadline ${formatDate(item.deadline)}`}</span>
-        {!item.rolling && <span className={`countdown ${days !== null && days <= 0 ? 'urgent' : ''}`}><Clock3 size={13} />{countdown(item.deadline)}</span>}
+      <div className="card-sub"><span>{item.organizer}</span><span className="dot">·</span><span>{eventPlace(item)}</span></div>
+      <div className="card-chips">
+        <span className="chip prize-chip"><Trophy size={11} />{prize(item)}</span>
+        {item.startDate && <span className="chip"><CalendarDays size={11} />{formatDate(item.startDate).replace(/, \d{4}$/, '')}</span>}
+        {item.judgeIdea && <span className="chip idea-chip">{item.judgeIdea}</span>}
       </div>
-      {item.judgeIdea && <div className="idea-tags"><span>{item.judgeIdea}</span></div>}
-      <div className="progress-row"><div className="progress-track"><span style={{ transform: `scaleX(${progress / checklistLabels.length})` }} /></div><span>{progress}/{checklistLabels.length}</span></div>
+      <div className="card-foot">
+        <Countdown deadline={item.deadline} rolling={item.rolling} />
+        <ProgressRing done={progress} total={checklistLabels.length} />
+      </div>
     </article>
   )
 }
@@ -212,7 +276,7 @@ function BoardColumn({ id, title, color, items, onOpen }: { id: ColumnId; title:
   const { setNodeRef, isOver } = useDroppable({ id: `column-${id}` })
   return (
     <section className={`board-column column-${color} ${isOver ? 'column-over' : ''}`} ref={setNodeRef}>
-      <div className="column-heading"><span className="column-dot" /><h2>{title}</h2><span className="column-count">{items.length}</span></div>
+      <div className="column-heading"><StatusIcon id={id} /><h2>{title}</h2><span className="column-count">{items.length}</span></div>
       <SortableContext items={items.map((item) => item.id)} strategy={verticalListSortingStrategy}>
         <div className="column-cards">
           {items.map((item) => <SortableCard key={item.id} item={item} onOpen={onOpen} />)}
@@ -231,7 +295,7 @@ function DetailDrawer({ item, onClose, onUpdate }: { item: Hackathon; onClose: (
       <aside className="detail-drawer" aria-label={`${item.name} details`}>
         <div className="drawer-header"><span>Hackathon details</span><button className="icon-button" onClick={onClose} aria-label="Close"><X size={18} /></button></div>
         <div className="drawer-content">
-          <Badge track={item.track} />
+          <div className="drawer-badges"><Badge track={item.track} /><Countdown deadline={item.deadline} rolling={item.rolling} /></div>
           <h2>{item.name}</h2>
           <div className="drawer-organizer">{item.organizer} <span>·</span> {eventPlace(item)}</div>
           <div className="drawer-facts">
@@ -259,7 +323,7 @@ function AddHackathonDialog({ onClose, onAdd }: { onClose: () => void; onAdd: (i
     event.preventDefault()
     if (!form.url.startsWith('https://')) { setError('Enter a secure https:// event link.'); return }
     const location = form.mode.trim() && form.mode.trim().toLowerCase() !== 'online' ? form.mode.trim() : null
-    onAdd({ id: `custom-${crypto.randomUUID()}`, name: form.name.trim(), organizer: form.organizer.trim(), track: form.track, prize: form.prizeAmount ? `${form.currency} ${Number(form.prizeAmount).toLocaleString()}` : 'TBA', startDate: form.startDate || null, deadline: form.deadline || null, rolling: false, format: location ? 'in-person' : 'online', location, country: null, url: form.url.trim(), source: 'manual', description: null, free: null, judgeScore: null, judgeIdea: null })
+    onAdd({ id: `custom-${crypto.randomUUID()}`, name: form.name.trim(), organizer: form.organizer.trim(), track: form.track, prize: form.prizeAmount ? `${form.currency} ${Number(form.prizeAmount).toLocaleString('en-US')}` : 'TBA', startDate: form.startDate || null, deadline: form.deadline || null, rolling: false, format: location ? 'in-person' : 'online', location, country: null, url: form.url.trim(), source: 'manual', description: null, free: null, judgeScore: null, judgeIdea: null })
   }
   return <div className="modal-layer" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}><form className="add-dialog" onSubmit={submit}><div className="dialog-header"><div><h2>Add a hackathon</h2><p>Bring the next opportunity onto the board.</p></div><button className="icon-button" type="button" onClick={onClose} aria-label="Close"><X size={18} /></button></div>
     <div className="form-grid"><label className="field full">Hackathon name<input required value={form.name} onChange={(event) => change('name', event.target.value)} placeholder="e.g. ETHGlobal Mumbai" /></label><label className="field">Organizer / platform<input required value={form.organizer} onChange={(event) => change('organizer', event.target.value)} placeholder="e.g. ETHGlobal" /></label><label className="field">Track<select value={form.track} onChange={(event) => change('track', event.target.value)}><option value="web3">Web3</option><option value="ai">AI</option><option value="both">Web3 + AI</option></select></label>
@@ -280,7 +344,9 @@ export default function App() {
   const [showAdd, setShowAdd] = useState(false)
   const [activeId, setActiveId] = useState<string | null>(null)
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 7 } }),
+    useSensor(MouseSensor, { activationConstraint: { distance: 7 } }),
+    // Long-press to drag on touch so a normal swipe still scrolls the board and columns.
+    useSensor(TouchSensor, { activationConstraint: { delay: 220, tolerance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   )
 
@@ -301,8 +367,11 @@ export default function App() {
         if (right.judgeScore === null) return -1
         return right.judgeScore - left.judgeScore
       }
-      const leftDate = left.deadline ? Date.parse(left.deadline) : Number.MAX_SAFE_INTEGER
-      const rightDate = right.deadline ? Date.parse(right.deadline) : Number.MAX_SAFE_INTEGER
+      // Undated / rolling events always sink to the bottom, whichever direction we sort.
+      if (!left.deadline) return right.deadline ? 1 : 0
+      if (!right.deadline) return -1
+      const leftDate = Date.parse(left.deadline)
+      const rightDate = Date.parse(right.deadline)
       return sortBy === 'soonest' ? leftDate - rightDate : rightDate - leftDate
     })
   }, [board.items, search, trackFilter, formatFilter, sourceFilter, ideaFilter, sortBy])
@@ -340,12 +409,12 @@ export default function App() {
       <div className="workspace-label">WORKSPACE</div><nav className="side-nav"><button className="nav-item selected"><LayoutGrid size={17} />Board<span className="nav-indicator" /></button></nav>
       <div className="sidebar-bottom"><div className="sidebar-team"><div className="avatar">N</div><div><strong>Nick's team</strong><span>Builder workspace</span></div><ChevronDown size={14} /></div><span className="version">HQ · 1.0.0</span></div>
     </aside>
-    <main id="top" className="main-content"><header className="topbar"><div className="breadcrumb">Workspace <span>/</span> <strong>Hackathons</strong></div><div className="top-actions"><span className="online-state"><span />All changes saved</span><button className="avatar small-avatar" title="Nick">N</button></div></header>
+    <main id="top" className="main-content"><header className="topbar"><div className="breadcrumb"><span className="topbar-mark"><Layers3 size={14} strokeWidth={2.2} /></span>Workspace <span>/</span> <strong>Hackathons</strong></div><div className="top-actions"><span className="online-state"><span />All changes saved</span><button className="avatar small-avatar" title="Nick">N</button></div></header>
       <div className="page-wrap"><section className="page-heading"><div><div className="heading-title"><span className="title-icon"><Sparkles size={20} /></span><h1>Hackathon board</h1></div><p>Every opportunity, one good idea away.</p></div><div className="heading-buttons"><button className="button subtle" onClick={resetBoard}><RotateCcw size={15} />Reset to seed</button><button className="button primary" onClick={() => setShowAdd(true)}><Plus size={17} />Add hackathon</button></div></section>
         <section className="stats-row" aria-label="Board summary"><div className="stat-card total"><div className="stat-icon"><LayoutGrid size={17} /></div><div><span>Total hackathons</span><strong>{board.items.length}</strong></div><small className="stat-extra">on your radar</small></div>
           {columns.map((column) => <div className="stat-card mini" key={column.id}><div className={`stat-dot ${column.color}`} /><span>{column.title === 'Approved by Judge' ? 'Approved' : column.title}</span><strong>{board.items.filter((item) => item.status === column.id).length}</strong></div>)}
           <div className="stat-card prize-stat"><div className="stat-icon gold"><Trophy size={16} /></div><div><span>Approved + building</span><strong>{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(activePool)}</strong></div><small>USD prize pools</small></div>
-          <div className="stat-card next-stat"><div className="stat-icon clock"><Clock3 size={16} /></div><div><span>Next deadline</span><strong>{next ? formatDate(next.deadline) : 'None yet'}</strong></div><small>{next?.name ?? 'Add an opportunity'}</small></div>
+          <div className="stat-card next-stat"><div className="stat-icon clock"><Clock3 size={16} /></div><div><span>Next deadline</span><strong>{next ? <Countdown deadline={next.deadline} rolling={false} /> : 'None yet'}</strong></div><small>{next ? `${next.name} · ${formatDate(next.deadline)}` : 'Add an opportunity'}</small></div>
         </section>
         <div className="board-toolbar">
           <div className="view-label"><span className="view-mark"><LayoutGrid size={16} /></span><h2>Pipeline</h2><span className="board-total">{filtered.length}</span></div>
