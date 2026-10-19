@@ -13,32 +13,33 @@ npm run dev
 
 ## Seed data
 
-`data-import/hacklist.json` is the team's source of truth. Merge its records into `src/data/hackathons.json`, deduplicating by normalized name or URL while retaining entries unique to either list. The optional `source` field records the listing or directory used to verify the event.
+`data-import/hacklist.json` is the only seed source. `src/data/hackathons.json` contains one mapped record for each of its 195 deduplicated entries. Keep the source fields current when regenerating the seed.
 
 Each object follows this schema:
 
 | Field | Type | Meaning |
 | --- | --- | --- |
-| `id` | string | Stable, unique identifier; do not reuse IDs. |
-| `name` | string | Official hackathon name. |
-| `organizer` | string | Organizer or hosting platform. |
-| `track` | `web3`, `ai`, or `both` | Main eligible track; use `both` only when the official listing supports both. |
-| `prizeAmount` | number or `null` | Published prize pool amount, without formatting; unknown values stay `null`. |
-| `currency` | string or `null` | ISO 4217 currency code for `prizeAmount`; `null` when the amount is unknown. |
-| `startDate` | `YYYY-MM-DD` or `null` | Published opening/start date; `null` when not provided. |
-| `deadline` | `YYYY-MM-DD` or `null` | Published end or submission deadline; `null` when not provided. |
-| `rolling` | boolean | True when the event accepts submissions on a rolling basis and has no fixed deadline. |
-| `mode` | string | `Online` or the published event location. |
-| `url` | string | Direct official event page URL. |
-| `source` | string, optional | Listing or directory page used to verify the event. |
-| `description` | string or `null`, optional | Imported event description. |
-| `prizeDescription` | string or `null`, optional | Original prize text, retained when the amount or currency is not a simple value. |
-| `judgeScore` | number from 0 to 10 or `null` | Team's assessment of the opportunity; editable on the card detail drawer. |
-| `ideas` | string array | Team ideas targeting this event, using `Blackbox Receipts`, `TasteProbe`, `LEASH`, `Mnemosyne`, or `SensorSeal`. |
-| `status` | `discovered` | Initial board column; imported `Backlog` entries map to `discovered`. |
+| `id` | string | Stable, unique ID generated from the title. |
+| `name` | string | Imported `title`. |
+| `organizer` | string | Organizer name. |
+| `track` | `web3`, `ai`, or `both` | Imported `category`, normalized to lowercase. |
+| `prize` | string | Imported prize text; an empty value becomes `TBA`. |
+| `startDate` | `YYYY-MM-DD` or `null` | Published opening/start date. |
+| `deadline` | `YYYY-MM-DD` or `null` | Published end/submission date. |
+| `rolling` | boolean | True when no fixed deadline is listed. |
+| `format` | `online`, `in-person`, or `hybrid` | Normalized from the imported format. |
+| `location` | string or `null` | Published event location. |
+| `country` | string or `null` | Published country. |
+| `url` | string | Event page URL. |
+| `source` | string | Original source label; cards can filter by `hacklist.io` or `hackathons.fun`. |
+| `description` | string or `null` | Imported event description. |
+| `free` | boolean or `null` | Imported entry fee flag. |
+| `judgeScore` | number from 0 to 10 or `null` | Imported team score, editable in the details drawer. |
+| `judgeIdea` | string or `null` | Imported idea association, shown as a card tag and used by the idea filter. |
+| `status` | `discovered` | Imported `Backlog` entries map to the Discovered column. |
 
-`notes` and `checklist` are board-only fields stored in local storage. Dates are ISO calendar dates. Null deadlines display as `TBA`, unless `rolling` is true; deadlines today and earlier display as `Closing today` and `Closed` in red. Missing prizes and dates render as `TBA`.
+`notes` and `checklist` are board-only fields stored in local storage. Dates are ISO calendar dates. Null deadlines display safely, and rolling events show a `Rolling` badge. The board defaults to judge score descending and lets the team filter by format, source, and idea.
 
 ## Current seed
 
-The seed contains 196 entries: 191 from HackList and 5 unique entries from the previous 17-entry list, after duplicate removal. Imported team ideas come from `data-import/top5-ideas.md`; judge scores come from `data-import/hacklist.json`.
+The seed contains exactly 195 entries from the final `data-import/hacklist.json` list.

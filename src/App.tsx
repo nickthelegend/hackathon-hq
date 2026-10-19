@@ -54,32 +54,34 @@ function boardStatus(status: string): ColumnId {
 }
 
 type Track = 'web3' | 'ai' | 'both'
+type EventFormat = 'online' | 'in-person' | 'hybrid'
 type Hackathon = {
   id: string
   name: string
   organizer: string
   track: Track
-  prizeAmount: number | null
-  currency: string | null
+  prize: string
   startDate: string | null
   deadline: string | null
   rolling: boolean
-  mode: string
+  format: EventFormat
+  location: string | null
+  country: string | null
   url: string
-  source?: string
-  description?: string | null
-  prizeDescription?: string | null
+  source: string
+  description: string | null
+  free: boolean | null
   judgeScore: number | null
-  ideas: string[]
+  judgeIdea: string | null
   status: ColumnId
   notes: string
   checklist: boolean[]
 }
 type BoardState = { items: Hackathon[] }
 
-const STORAGE_KEY = 'hackathon-hq-board-v2'
-const ideaNames = ['Blackbox Receipts', 'TasteProbe', 'LEASH', 'Mnemosyne', 'SensorSeal']
-const starterItems = seed.map((item) => ({ ...item, status: boardStatus(item.status), rolling: item.rolling ?? false, judgeScore: item.judgeScore ?? null, ideas: item.ideas ?? [], notes: '', checklist: checklistLabels.map(() => false) })) as Hackathon[]
+const STORAGE_KEY = 'hackathon-hq-board-v3'
+const ideaNames = [...new Set(seed.map((item) => item.judgeIdea).filter((idea): idea is string => Boolean(idea)))].sort()
+const starterItems = seed.map((item) => ({ ...item, status: boardStatus(item.status), rolling: item.rolling ?? false, judgeScore: item.judgeScore ?? null, judgeIdea: item.judgeIdea ?? null, prize: item.prize || 'TBA', free: item.free ?? null, notes: '', checklist: checklistLabels.map(() => false) })) as Hackathon[]
 
 function loadBoard(): BoardState {
   try {
@@ -93,7 +95,9 @@ function loadBoard(): BoardState {
         status: boardStatus(item.status),
         rolling: Boolean(item.rolling),
         judgeScore: typeof item.judgeScore === 'number' ? item.judgeScore : null,
-        ideas: Array.isArray(item.ideas) ? item.ideas : [],
+        judgeIdea: typeof item.judgeIdea === 'string' ? item.judgeIdea : null,
+        prize: typeof item.prize === 'string' && item.prize.trim() ? item.prize : 'TBA',
+        free: typeof item.free === 'boolean' ? item.free : null,
         notes: typeof item.notes === 'string' ? item.notes : '',
         checklist: checklistLabels.map((_, index) => Boolean(item.checklist?.[index])),
       })),
@@ -105,14 +109,18 @@ function loadBoard(): BoardState {
 
 function formatDate(value: string | null): string {
   if (!value) return 'TBA'
-  return new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${value}T00:00:00Z`))
+  const date = new Date(`${value}T00:00:00Z`)
+  if (Number.isNaN(date.getTime())) return 'TBA'
+  return new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }).format(date)
 }
 
 function daysLeft(value: string | null): number | null {
   if (!value) return null
+  const deadline = Date.parse(`${value}T00:00:00Z`)
+  if (Number.isNaN(deadline)) return null
   const now = new Date()
   const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())
-  return Math.ceil((Date.parse(`${value}T00:00:00Z`) - today) / 86400000)
+  return Math.ceil((deadline - today) / 86400000)
 }
 
 function countdown(value: string | null): string {
@@ -124,10 +132,29 @@ function countdown(value: string | null): string {
   return `${days} days left`
 }
 
-function prize(item: Hackathon): string {
-  if (item.prizeDescription) return item.prizeDescription
-  if (item.prizeAmount === null || !item.currency) return 'TBA'
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: item.currency, maximumFractionDigits: 0 }).format(item.prizeAmount)
+function prize(item: Hackathon): string { return item.prize || 'TBA' }
+
+function formatLabel(format: EventFormat): string {
+  return format === 'in-person' ? 'In person' : format === 'hybrid' ? 'Hybrid' : 'Online'
+}
+
+function eventPlace(item: Hackathon): string {
+  const location = item.location?.trim()
+  const country = item.country?.trim()
+  if (location && country && !location.toLowerCase().includes(country.toLowerCase())) return `${location}, ${country}`
+  return location || country || formatLabel(item.format)
+}
+
+function sourceFamily(source: string): 'hacklist.io' | 'hackathons.fun' | 'manual' {
+  if (source.startsWith('hacklist.io')) return 'hacklist.io'
+  if (source.startsWith('hackathons.fun')) return 'hackathons.fun'
+  return 'manual'
+}
+
+function prizeUsd(item: Hackathon): number {
+  if (/\b(?:USDT|USDC)\b/i.test(item.prize)) return 0
+  const amount = item.prize.match(/(?:\bUSD\s*|\$\s*)([\d,]+(?:\.\d+)?)/i)?.[1]
+  return amount ? Number(amount.replace(/,/g, '')) || 0 : 0
 }
 
 function Badge({ track }: { track: Track }) {
@@ -147,13 +174,13 @@ function HackathonCard({ item, onOpen, dragging = false }: { item: Hackathon; on
         <a className="card-link" href={item.url} target="_blank" rel="noreferrer" aria-label={`Open ${item.name} official page`} onClick={(event) => event.stopPropagation()}><ArrowUpRight size={15} /></a>
       </div>
       <h3>{item.name}</h3>
-      <div className="organizer-line">{item.organizer}<span>·</span>{item.mode}</div>
+      <div className="organizer-line">{item.organizer}<span>·</span>{eventPlace(item)}</div>
       <div className="card-prize"><Trophy size={14} /><span>{prize(item)}</span><small>in prizes</small></div>
       <div className="card-meta">
         <span><CalendarDays size={14} />{item.startDate ? `${formatDate(item.startDate)} – ${item.rolling ? 'Rolling' : formatDate(item.deadline)}` : item.rolling ? 'Rolling' : `Deadline ${formatDate(item.deadline)}`}</span>
         {!item.rolling && <span className={`countdown ${days !== null && days <= 0 ? 'urgent' : ''}`}><Clock3 size={13} />{countdown(item.deadline)}</span>}
       </div>
-      {item.ideas.length > 0 && <div className="idea-tags">{item.ideas.map((idea) => <span key={idea}>{idea}</span>)}</div>}
+      {item.judgeIdea && <div className="idea-tags"><span>{item.judgeIdea}</span></div>}
       <div className="progress-row"><div className="progress-track"><span style={{ transform: `scaleX(${progress / checklistLabels.length})` }} /></div><span>{progress}/{checklistLabels.length}</span></div>
     </article>
   )
@@ -194,12 +221,12 @@ function DetailDrawer({ item, onClose, onUpdate }: { item: Hackathon; onClose: (
         <div className="drawer-content">
           <Badge track={item.track} />
           <h2>{item.name}</h2>
-          <div className="drawer-organizer">{item.organizer} <span>·</span> {item.mode}</div>
+          <div className="drawer-organizer">{item.organizer} <span>·</span> {eventPlace(item)}</div>
           <div className="drawer-facts">
             <div><span>Prize pool</span><strong>{prize(item)}</strong></div>
             <div><span>Dates</span><strong>{item.startDate ? `${formatDate(item.startDate)} – ${item.rolling ? 'Rolling' : formatDate(item.deadline)}` : item.rolling ? 'Rolling' : `Deadline ${formatDate(item.deadline)}`}</strong></div>
           </div>
-          <section className="drawer-section score-section"><label className="field">Judge score (0–10)<input type="number" min="0" max="10" step="0.5" value={item.judgeScore ?? ''} placeholder="Not scored" onChange={(event) => onUpdate(item.id, { judgeScore: event.target.value === '' ? null : Math.min(10, Math.max(0, Number(event.target.value))) })} /></label>{item.ideas.length > 0 && <div className="drawer-ideas"><span>Target ideas</span><div className="idea-tags">{item.ideas.map((idea) => <span key={idea}>{idea}</span>)}</div></div>}</section>
+          <section className="drawer-section score-section"><label className="field">Judge score (0–10)<input type="number" min="0" max="10" step="0.5" value={item.judgeScore ?? ''} placeholder="Not scored" onChange={(event) => onUpdate(item.id, { judgeScore: event.target.value === '' ? null : Math.min(10, Math.max(0, Number(event.target.value))) })} /></label>{item.judgeIdea && <div className="drawer-ideas"><span>Judge idea</span><div className="idea-tags"><span>{item.judgeIdea}</span></div></div>}<div className="drawer-ideas"><span>Source</span><div className="source-value">{item.source}</div></div></section>
           <a className="official-link" href={item.url} target="_blank" rel="noreferrer">Open official page <ExternalLink size={15} /></a>
           <section className="drawer-section"><div className="section-title"><div><h3>Build checklist</h3><p>Small steps, shipped one by one.</p></div><span className="check-count">{completed} of {checklistLabels.length}</span></div>
             <div className="checklist">{checklistLabels.map((label, index) => <label key={label} className={`check-item ${item.checklist[index] ? 'checked' : ''}`}><input type="checkbox" checked={item.checklist[index]} onChange={(event) => onUpdate(item.id, { checklist: item.checklist.map((checked, itemIndex) => itemIndex === index ? event.target.checked : checked) })} /><span className="fake-check"><Check size={12} /></span><span>{label}</span></label>)}</div>
@@ -219,7 +246,8 @@ function AddHackathonDialog({ onClose, onAdd }: { onClose: () => void; onAdd: (i
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!form.url.startsWith('https://')) { setError('Enter a secure https:// event link.'); return }
-    onAdd({ id: `custom-${crypto.randomUUID()}`, name: form.name.trim(), organizer: form.organizer.trim(), track: form.track, prizeAmount: form.prizeAmount ? Number(form.prizeAmount) : null, currency: form.prizeAmount ? form.currency : null, startDate: form.startDate || null, deadline: form.deadline || null, rolling: false, mode: form.mode.trim() || 'Online', url: form.url.trim(), prizeDescription: null, judgeScore: null, ideas: [] })
+    const location = form.mode.trim() && form.mode.trim().toLowerCase() !== 'online' ? form.mode.trim() : null
+    onAdd({ id: `custom-${crypto.randomUUID()}`, name: form.name.trim(), organizer: form.organizer.trim(), track: form.track, prize: form.prizeAmount ? `${form.currency} ${Number(form.prizeAmount).toLocaleString()}` : 'TBA', startDate: form.startDate || null, deadline: form.deadline || null, rolling: false, format: location ? 'in-person' : 'online', location, country: null, url: form.url.trim(), source: 'manual', description: null, free: null, judgeScore: null, judgeIdea: null })
   }
   return <div className="modal-layer" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}><form className="add-dialog" onSubmit={submit}><div className="dialog-header"><div><h2>Add a hackathon</h2><p>Bring the next opportunity onto the board.</p></div><button className="icon-button" type="button" onClick={onClose} aria-label="Close"><X size={18} /></button></div>
     <div className="form-grid"><label className="field full">Hackathon name<input required value={form.name} onChange={(event) => change('name', event.target.value)} placeholder="e.g. ETHGlobal Mumbai" /></label><label className="field">Organizer / platform<input required value={form.organizer} onChange={(event) => change('organizer', event.target.value)} placeholder="e.g. ETHGlobal" /></label><label className="field">Track<select value={form.track} onChange={(event) => change('track', event.target.value)}><option value="web3">Web3</option><option value="ai">AI</option><option value="both">Web3 + AI</option></select></label>
@@ -232,7 +260,9 @@ export default function App() {
   const [board, setBoard] = useState<BoardState>(loadBoard)
   const [search, setSearch] = useState('')
   const [trackFilter, setTrackFilter] = useState<'all' | 'web3' | 'ai'>('all')
-  const [sortBy, setSortBy] = useState<'soonest' | 'latest' | 'judgeScore'>('soonest')
+  const [formatFilter, setFormatFilter] = useState<'all' | EventFormat>('all')
+  const [sourceFilter, setSourceFilter] = useState<'all' | 'hacklist.io' | 'hackathons.fun'>('all')
+  const [sortBy, setSortBy] = useState<'soonest' | 'latest' | 'judgeScore'>('judgeScore')
   const [ideaFilter, setIdeaFilter] = useState('all')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [showAdd, setShowAdd] = useState(false)
@@ -247,21 +277,27 @@ export default function App() {
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase()
     return board.items.filter((item) => {
-      const matchesSearch = !query || `${item.name} ${item.organizer} ${item.mode}`.toLowerCase().includes(query)
+      const matchesSearch = !query || `${item.name} ${item.organizer} ${item.location ?? ''} ${item.country ?? ''} ${item.source}`.toLowerCase().includes(query)
       const matchesTrack = trackFilter === 'all' || item.track === trackFilter || item.track === 'both'
-      const matchesIdea = ideaFilter === 'all' || item.ideas.includes(ideaFilter)
-      return matchesSearch && matchesTrack && matchesIdea
+      const matchesFormat = formatFilter === 'all' || item.format === formatFilter
+      const matchesSource = sourceFilter === 'all' || sourceFamily(item.source) === sourceFilter
+      const matchesIdea = ideaFilter === 'all' || item.judgeIdea === ideaFilter
+      return matchesSearch && matchesTrack && matchesFormat && matchesSource && matchesIdea
     }).sort((left, right) => {
-      if (sortBy === 'judgeScore') return (right.judgeScore ?? -1) - (left.judgeScore ?? -1)
+      if (sortBy === 'judgeScore') {
+        if (left.judgeScore === null) return right.judgeScore === null ? 0 : 1
+        if (right.judgeScore === null) return -1
+        return right.judgeScore - left.judgeScore
+      }
       const leftDate = left.deadline ? Date.parse(left.deadline) : Number.MAX_SAFE_INTEGER
       const rightDate = right.deadline ? Date.parse(right.deadline) : Number.MAX_SAFE_INTEGER
       return sortBy === 'soonest' ? leftDate - rightDate : rightDate - leftDate
     })
-  }, [board.items, search, trackFilter, ideaFilter, sortBy])
+  }, [board.items, search, trackFilter, formatFilter, sourceFilter, ideaFilter, sortBy])
 
   const selected = board.items.find((item) => item.id === selectedId) ?? null
   const active = board.items.find((item) => item.id === activeId) ?? null
-  const activePool = board.items.filter((item) => item.status === 'approved' || item.status === 'building').filter((item) => item.currency === 'USD' && item.prizeAmount !== null).reduce((sum, item) => sum + (item.prizeAmount ?? 0), 0)
+  const activePool = board.items.filter((item) => item.status === 'approved' || item.status === 'building').reduce((sum, item) => sum + prizeUsd(item), 0)
   const next = board.items.filter((item) => !item.rolling && daysLeft(item.deadline) !== null && (daysLeft(item.deadline) ?? -1) >= 0).sort((a, b) => Date.parse(a.deadline ?? '') - Date.parse(b.deadline ?? ''))[0]
 
   function updateItem(id: string, patch: Partial<Hackathon>) {
@@ -299,7 +335,17 @@ export default function App() {
           <div className="stat-card prize-stat"><div className="stat-icon gold"><Trophy size={16} /></div><div><span>Approved + building</span><strong>{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(activePool)}</strong></div><small>USD prize pools</small></div>
           <div className="stat-card next-stat"><div className="stat-icon clock"><Clock3 size={16} /></div><div><span>Next deadline</span><strong>{next ? formatDate(next.deadline) : 'None yet'}</strong></div><small>{next?.name ?? 'Add an opportunity'}</small></div>
         </section>
-        <div className="board-toolbar"><div className="view-label"><span className="view-mark"><LayoutGrid size={16} /></span><h2>Pipeline</h2><span className="board-total">{filtered.length}</span></div><div className="toolbar-controls"><label className="search-field"><Search size={16} /><input aria-label="Search hackathons" placeholder="Search hackathons..." value={search} onChange={(event) => setSearch(event.target.value)} /></label><div className="filter-group" aria-label="Filter track"><Filter size={14} /><button className={trackFilter === 'all' ? 'active' : ''} onClick={() => setTrackFilter('all')}>All</button><button className={trackFilter === 'web3' ? 'active' : ''} onClick={() => setTrackFilter('web3')}>Web3</button><button className={trackFilter === 'ai' ? 'active' : ''} onClick={() => setTrackFilter('ai')}>AI</button></div><label className="select-control"><span>Idea</span><select aria-label="Filter by idea" value={ideaFilter} onChange={(event) => setIdeaFilter(event.target.value)}><option value="all">All ideas</option>{ideaNames.map((idea) => <option key={idea} value={idea}>{idea}</option>)}</select></label><label className="sort-button"><ArrowDownWideNarrow size={15} /><span className="sr-only">Sort by</span><select aria-label="Sort hackathons" value={sortBy} onChange={(event) => setSortBy(event.target.value as typeof sortBy)}><option value="soonest">Deadline · Soonest</option><option value="latest">Deadline · Latest</option><option value="judgeScore">Judge score · Highest</option></select></label></div></div>
+        <div className="board-toolbar">
+          <div className="view-label"><span className="view-mark"><LayoutGrid size={16} /></span><h2>Pipeline</h2><span className="board-total">{filtered.length}</span></div>
+          <div className="toolbar-controls">
+            <label className="search-field"><Search size={16} /><input aria-label="Search hackathons" placeholder="Search hackathons..." value={search} onChange={(event) => setSearch(event.target.value)} /></label>
+            <div className="filter-group" aria-label="Filter track"><Filter size={14} /><button className={trackFilter === 'all' ? 'active' : ''} onClick={() => setTrackFilter('all')}>All</button><button className={trackFilter === 'web3' ? 'active' : ''} onClick={() => setTrackFilter('web3')}>Web3</button><button className={trackFilter === 'ai' ? 'active' : ''} onClick={() => setTrackFilter('ai')}>AI</button></div>
+            <div className="filter-group format-filter" aria-label="Filter format"><button className={formatFilter === 'all' ? 'active' : ''} onClick={() => setFormatFilter('all')}>Any</button><button className={formatFilter === 'online' ? 'active' : ''} onClick={() => setFormatFilter('online')}>Online</button><button className={formatFilter === 'in-person' ? 'active' : ''} onClick={() => setFormatFilter('in-person')}>In person</button><button className={formatFilter === 'hybrid' ? 'active' : ''} onClick={() => setFormatFilter('hybrid')}>Hybrid</button></div>
+            <label className="select-control"><span>Source</span><select aria-label="Filter by source" value={sourceFilter} onChange={(event) => setSourceFilter(event.target.value as typeof sourceFilter)}><option value="all">All sources</option><option value="hacklist.io">HackList</option><option value="hackathons.fun">hackathons.fun</option></select></label>
+            <label className="select-control"><span>Idea</span><select aria-label="Filter by idea" value={ideaFilter} onChange={(event) => setIdeaFilter(event.target.value)}><option value="all">All ideas</option>{ideaNames.map((idea) => <option key={idea} value={idea}>{idea}</option>)}</select></label>
+            <label className="sort-button"><ArrowDownWideNarrow size={15} /><span className="sr-only">Sort by</span><select aria-label="Sort hackathons" value={sortBy} onChange={(event) => setSortBy(event.target.value as typeof sortBy)}><option value="judgeScore">Judge score · Highest</option><option value="soonest">Deadline · Soonest</option><option value="latest">Deadline · Latest</option></select></label>
+          </div>
+        </div>
         <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={() => setActiveId(null)}>
           <div className="board-scroll"><div className="kanban-board">{columns.map((column) => <BoardColumn key={column.id} id={column.id} title={column.title} color={column.color} items={filtered.filter((item) => item.status === column.id)} onOpen={setSelectedId} />)}</div></div>
           <DragOverlay>{active ? <HackathonCard item={active} onOpen={() => undefined} dragging /> : null}</DragOverlay>

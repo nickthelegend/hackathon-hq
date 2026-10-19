@@ -122,11 +122,13 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .select-control { display: flex; align-items: center; gap: 6px; height: 33px; padding: 0 8px; border: 1px solid #30352f; border-radius: 8px; color: #949b90; background: #171a17; font-size: 9px; }
 .select-control select { max-width: 115px; border: 0; outline: 0; color: #d7edae; background: transparent; font-size: 9px; }
 .select-control option, .sort-button option { color: #e8ebe3; background: #171a17; }
+.format-filter { flex: none; }
+.source-value { color: #c9d5bc; font-size: 10px; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
 .board-scroll { overflow-x: auto; padding-bottom: 8px; scrollbar-color: #394036 #121512; }
 .kanban-board { display: grid; grid-template-columns: repeat(6, minmax(236px, 1fr)); align-items: start; gap: 10px; min-width: 1490px; }
-.board-column { min-height: 430px; padding: 10px; border: 1px solid #282d27; border-radius: 11px; background: #151815; transition: border-color .18s, background .18s; }
+.board-column { display: flex; flex-direction: column; height: clamp(320px, calc(100vh - 440px), 680px); min-height: 0; padding: 10px; border: 1px solid #282d27; border-radius: 11px; background: #151815; transition: border-color .18s, background .18s; }
 .board-column.column-over { background: #1c211a; border-color: #718d47; }
 .column-heading { display: flex; align-items: center; gap: 8px; height: 27px; padding: 0 2px 7px; }
 .column-dot { width: 7px; height: 7px; border-radius: 3px; box-shadow: 0 0 7px currentColor; }
@@ -134,10 +136,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .column-count { display: grid; place-items: center; min-width: 19px; height: 17px; padding: 0 5px; border-radius: 5px; background: #232823; color: #929a8e; font-size: 9px; }
 .column-more { display: grid; place-items: center; width: 21px; height: 21px; border: 0; border-radius: 5px; color: #737b70; background: transparent; cursor: pointer; }
 .column-more:hover { color: #dfe6d8; background: #2a2f29; }
-.column-cards { display: grid; align-content: start; gap: 8px; min-height: 360px; padding-top: 6px; }
+.column-cards { display: grid; flex: 1; align-content: start; gap: 8px; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 6px 4px 4px 0; scrollbar-color: #394036 #151815; scrollbar-width: thin; }
 .empty-column { display: grid; place-items: center; min-height: 73px; border: 1px dashed #343a33; border-radius: 8px; color: #656e63; font-size: 10px; transition: border-color .2s, color .2s; }
 .column-over .empty-column { color: #b0cb83; border-color: #718d47; }
-.sortable-wrap { touch-action: none; cursor: grab; }
+.sortable-wrap { touch-action: pan-y; cursor: grab; }
 .sortable-wrap:active { cursor: grabbing; }
 .sortable-wrap.dragging { opacity: .36; }
 .hack-card { padding: 11px 10px 9px; border: 1px solid #30362f; border-radius: 9px; background: #1b1f1b; box-shadow: 0 3px 7px #00000017; cursor: pointer; transition: transform .17s ease, border-color .17s ease, background .17s ease, box-shadow .17s ease; }
@@ -272,6 +274,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .toolbar-controls { flex-wrap: wrap; }
   .search-field { min-width: 190px; flex-basis: 100%; }
   .sort-button { margin-left: auto; }
+  .select-control { flex: 1; justify-content: space-between; }
+  .select-control select { max-width: 145px; }
 }
 @media (max-width: 520px) {
   body { min-width: 360px; }
@@ -295,6 +299,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .board-toolbar { gap: 10px; }
   .toolbar-controls { gap: 6px; }
   .filter-group { flex: 1; }
+  .format-filter { flex-basis: 100%; }
   .filter-group button { flex: 1; padding-right: 5px; padding-left: 5px; }
   .sort-button { padding: 0 7px; gap: 4px; font-size: 9px; }
   .sort-button span { font-size: 8px; }
