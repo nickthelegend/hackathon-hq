@@ -118,6 +118,11 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .sort-button { display: flex; align-items: center; gap: 7px; height: 33px; padding: 0 9px; border: 1px solid #30352f; border-radius: 8px; color: #949b90; background: #171a17; font-size: 10px; cursor: pointer; }
 .sort-button:hover { border-color: #485242; color: #e0e5da; }
 .sort-button span { color: #c5e481; }
+.sort-button select { max-width: 154px; border: 0; outline: 0; color: #c5e481; background: transparent; font-size: 9px; }
+.select-control { display: flex; align-items: center; gap: 6px; height: 33px; padding: 0 8px; border: 1px solid #30352f; border-radius: 8px; color: #949b90; background: #171a17; font-size: 9px; }
+.select-control select { max-width: 115px; border: 0; outline: 0; color: #d7edae; background: transparent; font-size: 9px; }
+.select-control option, .sort-button option { color: #e8ebe3; background: #171a17; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
 .board-scroll { overflow-x: auto; padding-bottom: 8px; scrollbar-color: #394036 #121512; }
 .kanban-board { display: grid; grid-template-columns: repeat(6, minmax(236px, 1fr)); align-items: start; gap: 10px; min-width: 1490px; }
@@ -143,6 +148,11 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .track-badge.ai { color: #b8a7f1; background: #2b2639; }
 .track-badge.web3 { color: #7dd0bf; background: #1f302c; }
 .track-badge.both { color: #d2bc76; background: #332f20; }
+.judge-score-badge, .rolling-badge { display: inline-flex; align-items: center; width: fit-content; padding: 4px 6px; border-radius: 5px; font-size: 8px; line-height: 1; font-weight: 700; white-space: nowrap; }
+.judge-score-badge { color: #c6df8b; background: #293020; }
+.rolling-badge { color: #8dd0bd; background: #1f302c; }
+.card-topline > .track-badge { margin-right: auto; }
+.card-topline > .judge-score-badge { margin-left: 4px; }
 .card-link { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 6px; color: #7f887b; text-decoration: none; }
 .card-link:hover { color: #d6f398; background: #30392a; }
 .hack-card h3 { display: -webkit-box; min-height: 34px; margin: 0 0 5px; overflow: hidden; color: #e1e5dc; font: 650 11px/1.5 'Manrope', sans-serif; letter-spacing: -.02em; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
@@ -157,6 +167,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .countdown { color: #a5ad9e !important; }
 .countdown.urgent { color: #f08f7d !important; }
 .countdown.urgent svg { color: #e58170; }
+.idea-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.idea-tags span { padding: 4px 6px; border: 1px solid #3a4033; border-radius: 5px; color: #bbc995; background: #24291f; font-size: 8px; line-height: 1; }
+.card-meta + .idea-tags { margin: 0 0 8px; }
 .progress-row { display: flex; align-items: center; gap: 7px; color: #737b70; font-size: 8px; }
 .progress-track { height: 3px; flex: 1; overflow: hidden; border-radius: 4px; background: #30362e; }
 .progress-track span { display: block; width: 100%; height: 100%; border-radius: 4px; background: #b5db65; transform: scaleX(0); transform-origin: left center; transition: transform .25s ease; }
@@ -177,6 +190,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .drawer-facts > div { padding: 11px; border: 1px solid #30362f; border-radius: 9px; background: #1c201c; }
 .drawer-facts span { display: block; margin-bottom: 6px; color: #838b7f; font-size: 9px; }
 .drawer-facts strong { color: #dfe5d9; font-size: 11px; line-height: 1.4; }
+.score-section { display: grid; gap: 15px; padding: 13px; border: 1px solid #30362f; border-radius: 9px; background: #1c201c; }
+.score-section .field { max-width: 190px; }
+.drawer-ideas { display: grid; gap: 8px; color: #838b7f; font-size: 9px; }
 .official-link { display: inline-flex; align-items: center; gap: 7px; color: #c8e882; font-size: 10px; font-weight: 600; text-decoration: none; }
 .official-link:hover { color: #e0f8af; text-decoration: underline; text-underline-offset: 3px; }
 .drawer-section { margin-top: 27px; }
@@ -282,6 +298,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .filter-group button { flex: 1; padding-right: 5px; padding-left: 5px; }
   .sort-button { padding: 0 7px; gap: 4px; font-size: 9px; }
   .sort-button span { font-size: 8px; }
+  .sort-button select { max-width: 116px; }
   .board-footer { font-size: 8px; }
   .board-footer span:last-child { display: none; }
   .form-grid { grid-template-columns: 1fr; }

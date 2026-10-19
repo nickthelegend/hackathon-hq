@@ -47,6 +47,12 @@ const columns = [
 
 const checklistLabels = ['Idea', 'Repo', 'MVP', 'Demo video', 'Deck', 'Submission']
 type ColumnId = (typeof columns)[number]['id']
+
+function boardStatus(status: string): ColumnId {
+  if (status === 'Backlog') return 'discovered'
+  return columns.find((column) => column.id === status)?.id ?? 'discovered'
+}
+
 type Track = 'web3' | 'ai' | 'both'
 type Hackathon = {
   id: string
@@ -57,17 +63,23 @@ type Hackathon = {
   currency: string | null
   startDate: string | null
   deadline: string | null
+  rolling: boolean
   mode: string
   url: string
   source?: string
+  description?: string | null
+  prizeDescription?: string | null
+  judgeScore: number | null
+  ideas: string[]
   status: ColumnId
   notes: string
   checklist: boolean[]
 }
 type BoardState = { items: Hackathon[] }
 
-const STORAGE_KEY = 'hackathon-hq-board-v1'
-const starterItems = seed.map((item) => ({ ...item, status: 'discovered' as const, notes: '', checklist: checklistLabels.map(() => false) })) as Hackathon[]
+const STORAGE_KEY = 'hackathon-hq-board-v2'
+const ideaNames = ['Blackbox Receipts', 'TasteProbe', 'LEASH', 'Mnemosyne', 'SensorSeal']
+const starterItems = seed.map((item) => ({ ...item, status: boardStatus(item.status), rolling: item.rolling ?? false, judgeScore: item.judgeScore ?? null, ideas: item.ideas ?? [], notes: '', checklist: checklistLabels.map(() => false) })) as Hackathon[]
 
 function loadBoard(): BoardState {
   try {
@@ -78,7 +90,10 @@ function loadBoard(): BoardState {
     return {
       items: parsed.items.map((item) => ({
         ...item,
-        status: columns.some((column) => column.id === item.status) ? item.status : 'discovered',
+        status: boardStatus(item.status),
+        rolling: Boolean(item.rolling),
+        judgeScore: typeof item.judgeScore === 'number' ? item.judgeScore : null,
+        ideas: Array.isArray(item.ideas) ? item.ideas : [],
         notes: typeof item.notes === 'string' ? item.notes : '',
         checklist: checklistLabels.map((_, index) => Boolean(item.checklist?.[index])),
       })),
@@ -104,12 +119,13 @@ function countdown(value: string | null): string {
   const days = daysLeft(value)
   if (days === null) return 'TBA'
   if (days < 0) return 'Closed'
-  if (days === 0) return 'Today'
+  if (days === 0) return 'Closing today'
   if (days === 1) return '1 day left'
   return `${days} days left`
 }
 
 function prize(item: Hackathon): string {
+  if (item.prizeDescription) return item.prizeDescription
   if (item.prizeAmount === null || !item.currency) return 'TBA'
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: item.currency, maximumFractionDigits: 0 }).format(item.prizeAmount)
 }
@@ -126,15 +142,18 @@ function HackathonCard({ item, onOpen, dragging = false }: { item: Hackathon; on
     <article className={`hack-card ${dragging ? 'is-dragging' : ''}`} onClick={() => onOpen(item.id)}>
       <div className="card-topline">
         <Badge track={item.track} />
+        {item.rolling && <span className="rolling-badge">Rolling</span>}
+        <span className="judge-score-badge">Judge {item.judgeScore === null ? '—' : `${item.judgeScore}/10`}</span>
         <a className="card-link" href={item.url} target="_blank" rel="noreferrer" aria-label={`Open ${item.name} official page`} onClick={(event) => event.stopPropagation()}><ArrowUpRight size={15} /></a>
       </div>
       <h3>{item.name}</h3>
       <div className="organizer-line">{item.organizer}<span>·</span>{item.mode}</div>
       <div className="card-prize"><Trophy size={14} /><span>{prize(item)}</span><small>in prizes</small></div>
       <div className="card-meta">
-        <span><CalendarDays size={14} />{item.startDate ? `${formatDate(item.startDate)} – ${formatDate(item.deadline)}` : `Deadline ${formatDate(item.deadline)}`}</span>
-        <span className={`countdown ${days !== null && days < 3 ? 'urgent' : ''}`}><Clock3 size={13} />{countdown(item.deadline)}</span>
+        <span><CalendarDays size={14} />{item.startDate ? `${formatDate(item.startDate)} – ${item.rolling ? 'Rolling' : formatDate(item.deadline)}` : item.rolling ? 'Rolling' : `Deadline ${formatDate(item.deadline)}`}</span>
+        {!item.rolling && <span className={`countdown ${days !== null && days <= 0 ? 'urgent' : ''}`}><Clock3 size={13} />{countdown(item.deadline)}</span>}
       </div>
+      {item.ideas.length > 0 && <div className="idea-tags">{item.ideas.map((idea) => <span key={idea}>{idea}</span>)}</div>}
       <div className="progress-row"><div className="progress-track"><span style={{ transform: `scaleX(${progress / checklistLabels.length})` }} /></div><span>{progress}/{checklistLabels.length}</span></div>
     </article>
   )
@@ -178,8 +197,9 @@ function DetailDrawer({ item, onClose, onUpdate }: { item: Hackathon; onClose: (
           <div className="drawer-organizer">{item.organizer} <span>·</span> {item.mode}</div>
           <div className="drawer-facts">
             <div><span>Prize pool</span><strong>{prize(item)}</strong></div>
-            <div><span>Dates</span><strong>{item.startDate ? `${formatDate(item.startDate)} – ${formatDate(item.deadline)}` : `Deadline ${formatDate(item.deadline)}`}</strong></div>
+            <div><span>Dates</span><strong>{item.startDate ? `${formatDate(item.startDate)} – ${item.rolling ? 'Rolling' : formatDate(item.deadline)}` : item.rolling ? 'Rolling' : `Deadline ${formatDate(item.deadline)}`}</strong></div>
           </div>
+          <section className="drawer-section score-section"><label className="field">Judge score (0–10)<input type="number" min="0" max="10" step="0.5" value={item.judgeScore ?? ''} placeholder="Not scored" onChange={(event) => onUpdate(item.id, { judgeScore: event.target.value === '' ? null : Math.min(10, Math.max(0, Number(event.target.value))) })} /></label>{item.ideas.length > 0 && <div className="drawer-ideas"><span>Target ideas</span><div className="idea-tags">{item.ideas.map((idea) => <span key={idea}>{idea}</span>)}</div></div>}</section>
           <a className="official-link" href={item.url} target="_blank" rel="noreferrer">Open official page <ExternalLink size={15} /></a>
           <section className="drawer-section"><div className="section-title"><div><h3>Build checklist</h3><p>Small steps, shipped one by one.</p></div><span className="check-count">{completed} of {checklistLabels.length}</span></div>
             <div className="checklist">{checklistLabels.map((label, index) => <label key={label} className={`check-item ${item.checklist[index] ? 'checked' : ''}`}><input type="checkbox" checked={item.checklist[index]} onChange={(event) => onUpdate(item.id, { checklist: item.checklist.map((checked, itemIndex) => itemIndex === index ? event.target.checked : checked) })} /><span className="fake-check"><Check size={12} /></span><span>{label}</span></label>)}</div>
@@ -199,7 +219,7 @@ function AddHackathonDialog({ onClose, onAdd }: { onClose: () => void; onAdd: (i
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!form.url.startsWith('https://')) { setError('Enter a secure https:// event link.'); return }
-    onAdd({ id: `custom-${crypto.randomUUID()}`, name: form.name.trim(), organizer: form.organizer.trim(), track: form.track, prizeAmount: form.prizeAmount ? Number(form.prizeAmount) : null, currency: form.prizeAmount ? form.currency : null, startDate: form.startDate || null, deadline: form.deadline || null, mode: form.mode.trim() || 'Online', url: form.url.trim() })
+    onAdd({ id: `custom-${crypto.randomUUID()}`, name: form.name.trim(), organizer: form.organizer.trim(), track: form.track, prizeAmount: form.prizeAmount ? Number(form.prizeAmount) : null, currency: form.prizeAmount ? form.currency : null, startDate: form.startDate || null, deadline: form.deadline || null, rolling: false, mode: form.mode.trim() || 'Online', url: form.url.trim(), prizeDescription: null, judgeScore: null, ideas: [] })
   }
   return <div className="modal-layer" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}><form className="add-dialog" onSubmit={submit}><div className="dialog-header"><div><h2>Add a hackathon</h2><p>Bring the next opportunity onto the board.</p></div><button className="icon-button" type="button" onClick={onClose} aria-label="Close"><X size={18} /></button></div>
     <div className="form-grid"><label className="field full">Hackathon name<input required value={form.name} onChange={(event) => change('name', event.target.value)} placeholder="e.g. ETHGlobal Mumbai" /></label><label className="field">Organizer / platform<input required value={form.organizer} onChange={(event) => change('organizer', event.target.value)} placeholder="e.g. ETHGlobal" /></label><label className="field">Track<select value={form.track} onChange={(event) => change('track', event.target.value)}><option value="web3">Web3</option><option value="ai">AI</option><option value="both">Web3 + AI</option></select></label>
@@ -212,7 +232,8 @@ export default function App() {
   const [board, setBoard] = useState<BoardState>(loadBoard)
   const [search, setSearch] = useState('')
   const [trackFilter, setTrackFilter] = useState<'all' | 'web3' | 'ai'>('all')
-  const [sortDirection, setSortDirection] = useState<'soonest' | 'latest'>('soonest')
+  const [sortBy, setSortBy] = useState<'soonest' | 'latest' | 'judgeScore'>('soonest')
+  const [ideaFilter, setIdeaFilter] = useState('all')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [showAdd, setShowAdd] = useState(false)
   const [activeId, setActiveId] = useState<string | null>(null)
@@ -228,18 +249,20 @@ export default function App() {
     return board.items.filter((item) => {
       const matchesSearch = !query || `${item.name} ${item.organizer} ${item.mode}`.toLowerCase().includes(query)
       const matchesTrack = trackFilter === 'all' || item.track === trackFilter || item.track === 'both'
-      return matchesSearch && matchesTrack
+      const matchesIdea = ideaFilter === 'all' || item.ideas.includes(ideaFilter)
+      return matchesSearch && matchesTrack && matchesIdea
     }).sort((left, right) => {
+      if (sortBy === 'judgeScore') return (right.judgeScore ?? -1) - (left.judgeScore ?? -1)
       const leftDate = left.deadline ? Date.parse(left.deadline) : Number.MAX_SAFE_INTEGER
       const rightDate = right.deadline ? Date.parse(right.deadline) : Number.MAX_SAFE_INTEGER
-      return sortDirection === 'soonest' ? leftDate - rightDate : rightDate - leftDate
+      return sortBy === 'soonest' ? leftDate - rightDate : rightDate - leftDate
     })
-  }, [board.items, search, trackFilter, sortDirection])
+  }, [board.items, search, trackFilter, ideaFilter, sortBy])
 
   const selected = board.items.find((item) => item.id === selectedId) ?? null
   const active = board.items.find((item) => item.id === activeId) ?? null
   const activePool = board.items.filter((item) => item.status === 'approved' || item.status === 'building').filter((item) => item.currency === 'USD' && item.prizeAmount !== null).reduce((sum, item) => sum + (item.prizeAmount ?? 0), 0)
-  const next = board.items.filter((item) => daysLeft(item.deadline) !== null && (daysLeft(item.deadline) ?? -1) >= 0).sort((a, b) => Date.parse(a.deadline ?? '') - Date.parse(b.deadline ?? ''))[0]
+  const next = board.items.filter((item) => !item.rolling && daysLeft(item.deadline) !== null && (daysLeft(item.deadline) ?? -1) >= 0).sort((a, b) => Date.parse(a.deadline ?? '') - Date.parse(b.deadline ?? ''))[0]
 
   function updateItem(id: string, patch: Partial<Hackathon>) {
     setBoard((current) => ({ items: current.items.map((item) => item.id === id ? { ...item, ...patch } : item) }))
@@ -276,7 +299,7 @@ export default function App() {
           <div className="stat-card prize-stat"><div className="stat-icon gold"><Trophy size={16} /></div><div><span>Approved + building</span><strong>{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(activePool)}</strong></div><small>USD prize pools</small></div>
           <div className="stat-card next-stat"><div className="stat-icon clock"><Clock3 size={16} /></div><div><span>Next deadline</span><strong>{next ? formatDate(next.deadline) : 'None yet'}</strong></div><small>{next?.name ?? 'Add an opportunity'}</small></div>
         </section>
-        <div className="board-toolbar"><div className="view-label"><span className="view-mark"><LayoutGrid size={16} /></span><h2>Pipeline</h2><span className="board-total">{filtered.length}</span></div><div className="toolbar-controls"><label className="search-field"><Search size={16} /><input aria-label="Search hackathons" placeholder="Search hackathons..." value={search} onChange={(event) => setSearch(event.target.value)} /></label><div className="filter-group" aria-label="Filter track"><Filter size={14} /><button className={trackFilter === 'all' ? 'active' : ''} onClick={() => setTrackFilter('all')}>All</button><button className={trackFilter === 'web3' ? 'active' : ''} onClick={() => setTrackFilter('web3')}>Web3</button><button className={trackFilter === 'ai' ? 'active' : ''} onClick={() => setTrackFilter('ai')}>AI</button></div><button className="sort-button" onClick={() => setSortDirection((current) => current === 'soonest' ? 'latest' : 'soonest')}><ArrowDownWideNarrow size={15} />Deadline <span>{sortDirection === 'soonest' ? 'Soonest' : 'Latest'}</span></button></div></div>
+        <div className="board-toolbar"><div className="view-label"><span className="view-mark"><LayoutGrid size={16} /></span><h2>Pipeline</h2><span className="board-total">{filtered.length}</span></div><div className="toolbar-controls"><label className="search-field"><Search size={16} /><input aria-label="Search hackathons" placeholder="Search hackathons..." value={search} onChange={(event) => setSearch(event.target.value)} /></label><div className="filter-group" aria-label="Filter track"><Filter size={14} /><button className={trackFilter === 'all' ? 'active' : ''} onClick={() => setTrackFilter('all')}>All</button><button className={trackFilter === 'web3' ? 'active' : ''} onClick={() => setTrackFilter('web3')}>Web3</button><button className={trackFilter === 'ai' ? 'active' : ''} onClick={() => setTrackFilter('ai')}>AI</button></div><label className="select-control"><span>Idea</span><select aria-label="Filter by idea" value={ideaFilter} onChange={(event) => setIdeaFilter(event.target.value)}><option value="all">All ideas</option>{ideaNames.map((idea) => <option key={idea} value={idea}>{idea}</option>)}</select></label><label className="sort-button"><ArrowDownWideNarrow size={15} /><span className="sr-only">Sort by</span><select aria-label="Sort hackathons" value={sortBy} onChange={(event) => setSortBy(event.target.value as typeof sortBy)}><option value="soonest">Deadline · Soonest</option><option value="latest">Deadline · Latest</option><option value="judgeScore">Judge score · Highest</option></select></label></div></div>
         <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={() => setActiveId(null)}>
           <div className="board-scroll"><div className="kanban-board">{columns.map((column) => <BoardColumn key={column.id} id={column.id} title={column.title} color={column.color} items={filtered.filter((item) => item.status === column.id)} onOpen={setSelectedId} />)}</div></div>
           <DragOverlay>{active ? <HackathonCard item={active} onOpen={() => undefined} dragging /> : null}</DragOverlay>

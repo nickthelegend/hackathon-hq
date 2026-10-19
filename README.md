@@ -13,7 +13,7 @@ npm run dev
 
 ## Seed data
 
-Update `src/data/hackathons.json` to refresh the Discovered column. Keep each event on its official organizer or platform page, and only include events currently open or upcoming as of the update date. The optional `source` field records the official directory used to verify the event listing.
+`data-import/hacklist.json` is the team's source of truth. Merge its records into `src/data/hackathons.json`, deduplicating by normalized name or URL while retaining entries unique to either list. The optional `source` field records the listing or directory used to verify the event.
 
 Each object follows this schema:
 
@@ -27,12 +27,18 @@ Each object follows this schema:
 | `currency` | string or `null` | ISO 4217 currency code for `prizeAmount`; `null` when the amount is unknown. |
 | `startDate` | `YYYY-MM-DD` or `null` | Published opening/start date; `null` when not provided. |
 | `deadline` | `YYYY-MM-DD` or `null` | Published end or submission deadline; `null` when not provided. |
+| `rolling` | boolean | True when the event accepts submissions on a rolling basis and has no fixed deadline. |
 | `mode` | string | `Online` or the published event location. |
 | `url` | string | Direct official event page URL. |
-| `source` | string, optional | Official listing or directory page used to verify the event. |
+| `source` | string, optional | Listing or directory page used to verify the event. |
+| `description` | string or `null`, optional | Imported event description. |
+| `prizeDescription` | string or `null`, optional | Original prize text, retained when the amount or currency is not a simple value. |
+| `judgeScore` | number from 0 to 10 or `null` | Team's assessment of the opportunity; editable on the card detail drawer. |
+| `ideas` | string array | Team ideas targeting this event, using `Blackbox Receipts`, `TasteProbe`, `LEASH`, `Mnemosyne`, or `SensorSeal`. |
+| `status` | `discovered` | Initial board column; imported `Backlog` entries map to `discovered`. |
 
-Do not add board-only fields (`status`, `notes`, `checklist`) to the seed; the app initializes those locally and keeps every seed entry in `discovered`. Dates are ISO calendar dates in UTC. Missing prizes and dates render as `TBA`.
+`notes` and `checklist` are board-only fields stored in local storage. Dates are ISO calendar dates. Null deadlines display as `TBA`, unless `rolling` is true; deadlines today and earlier display as `Closing today` and `Closed` in red. Missing prizes and dates render as `TBA`.
 
 ## Current seed
 
-The seed was reviewed on October 19, 2026. Event availability, deadlines, and prizes can change; confirm them at the linked official page before committing team time. The current list contains 17 Web3 and AI opportunities from ETHGlobal and Devpost.
+The seed contains 196 entries: 191 from HackList and 5 unique entries from the previous 17-entry list, after duplicate removal. Imported team ideas come from `data-import/top5-ideas.md`; judge scores come from `data-import/hacklist.json`.
