@@ -11,6 +11,10 @@ npm run dev
 
 `npm run build` type-checks and produces the production bundle. `npm run lint` runs ESLint.
 
+## Deployment
+
+The `main` branch deploys to [Hackathon HQ on GitHub Pages](https://nickthelegend.github.io/hackathon-hq/) through `.github/workflows/pages.yml`. Set the repository's Pages source to **GitHub Actions** to enable deployment.
+
 ## Seed data
 
 `data-import/hacklist.json` is the only seed source. `src/data/hackathons.json` contains one mapped record for each of its 195 deduplicated entries. Keep the source fields current when regenerating the seed.
