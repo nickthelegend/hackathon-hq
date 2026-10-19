@@ -89,8 +89,20 @@ function loadBoard(): BoardState {
     if (!saved) return { items: starterItems }
     const parsed = JSON.parse(saved) as BoardState
     if (!Array.isArray(parsed.items)) return { items: starterItems }
+    // Seed data (hackathons.json) is the source of truth for event facts; only the
+    // user's own board state (status, notes, checklist, score edits) and custom cards
+    // are restored from storage, so updated or newly added hackathons always show up.
+    const savedById = new Map(parsed.items.map((item) => [item.id, item]))
+    const seedIds = new Set(starterItems.map((item) => item.id))
+    const merged = [
+      ...starterItems.map((item) => {
+        const saved = savedById.get(item.id)
+        return saved ? { ...item, status: saved.status, notes: saved.notes, checklist: saved.checklist, judgeScore: saved.judgeScore } : item
+      }),
+      ...parsed.items.filter((item) => !seedIds.has(item.id)),
+    ]
     return {
-      items: parsed.items.map((item) => ({
+      items: merged.map((item) => ({
         ...item,
         status: boardStatus(item.status),
         rolling: Boolean(item.rolling),
