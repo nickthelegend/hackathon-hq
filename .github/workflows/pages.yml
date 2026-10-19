@@ -26,7 +26,7 @@ jobs:
           node-version: 20
           cache: npm
       - name: Build site
-        run: npm ci && npm run build
+        run: npm install --no-audit --no-fund && npm run build
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
