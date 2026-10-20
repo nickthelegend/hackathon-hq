@@ -9,7 +9,7 @@ export type ProjectStatus = 'idea' | 'building' | 'verified' | 'submitted'
 
 // Bump this and set `seedVersion` on a project to make its seed stage, progress, score and
 // next step override what a browser saved before that version.
-export const PROJECTS_SEED_VERSION = 16
+export const PROJECTS_SEED_VERSION = 17
 
 export type ProjectTarget = {
   hackathonId: string | null
@@ -129,15 +129,16 @@ export const projectSeed: ProjectSeed[] = [
   {
     id: 'unlinkable-swaps',
     name: 'Unlinkable swaps (wallet-side)',
-    pitch: 'Wallet-side swaps that break the link between the shielded source and the swapped output.',
+    pitch: 'Every swap out of Zcash gets a one-time refund address, so the public refundTo fields cannot link a wallet’s swaps.',
     targets: [zecathonNotEntered],
-    judgeScore: 5,
-    status: 'idea',
-    progress: 0,
-    repo: null,
-    nextStep: 'Not entered in Zecathon (one submission per team)',
-    flag: 'Not entered',
-    seedVersion: 9,
+    judgeScore: 5.5,
+    scoreNote: 'Plan score; built Oct 20: one-time refund keys (zakura-one-time-ivk 0.0.1-rc1), 3 real 1Click dry quotes with distinct refundTo, testnet refunds found only by their own keys, 14 tests; a real swap is BLOCKED on mainnet ZEC',
+    status: 'building',
+    progress: 75,
+    repo: gh('zec-unlinkable-swaps'),
+    nextStep: 'Verifier review of zec-unlinkable-swaps-build.bundle; Nick: repo, and OK + mainnet ZEC for one real swap',
+    flag: 'Not entered: portfolio; real swap BLOCKED',
+    seedVersion: 17,
   },
   {
     id: 'shielded-contract-sdk',
@@ -210,16 +211,32 @@ export const projectSeed: ProjectSeed[] = [
     seedVersion: 15,
   },
   {
+    id: 'zec-null-402',
+    name: 'zec-null-402',
+    pitch: 'One shielded Zcash deposit, then pay per API call with a zero-knowledge proof: no transaction per call.',
+    targets: [zecathonNotEntered],
+    judgeScore: 6,
+    scoreNote: 'Plan score; built Oct 20: deposit of 22 notes, 20 calls paid with Groth16 proofs on testnet, refusals, gateway state anchored; 18 tests; the gateway is trusted (no contracts on Zcash)',
+    status: 'building',
+    progress: 85,
+    repo: gh('zec-null-402'),
+    nextStep: 'Verifier review of zec-null-402-build.bundle; Nick creates the repo',
+    flag: 'Not entered: portfolio (Zecathon entry is Shielded x402)',
+    seedVersion: 17,
+  },
+  {
     id: 'pq-confidential-intents',
-    name: 'PQ Confidential Intents',
-    pitch: 'Confidential, post-quantum-safe intents for cross-chain agent actions.',
-    targets: [near],
-    judgeScore: 5,
-    status: 'idea',
-    progress: 0,
-    repo: null,
-    nextStep: 'Parked — revisit after NEAR kickoff',
-    flag: 'Parked',
+    name: 'PQ Intents on Zcash (zec-pq-intents)',
+    pitch: 'Intents signed with ML-DSA-65 and sealed with ML-KEM-768, settled in shielded ZEC, with a signed, anchored decision log.',
+    targets: [zecathonNotEntered],
+    judgeScore: 6.5,
+    scoreNote: 'Moved from NEAR to Zcash (Oct 20). Plan score; built Oct 20: 2 intents settled and 1 refunded on testnet, 6 signed rejections, log anchored in a shielded memo, 25 tests; awaiting judge',
+    status: 'building',
+    progress: 85,
+    repo: gh('zec-pq-intents'),
+    nextStep: 'Verifier review of zec-pq-intents-build.bundle; Nick creates the repo',
+    flag: 'Not entered: portfolio (Zecathon entry is Shielded x402)',
+    seedVersion: 17,
   },
   {
     id: 'witness',
