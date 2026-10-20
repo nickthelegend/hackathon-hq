@@ -9,7 +9,7 @@ export type ProjectStatus = 'idea' | 'building' | 'verified' | 'submitted'
 
 // Bump this and set `seedVersion` on a project to make its seed stage, progress, score and
 // next step override what a browser saved before that version.
-export const PROJECTS_SEED_VERSION = 2
+export const PROJECTS_SEED_VERSION = 3
 
 export type ProjectTarget = {
   hackathonId: string | null
@@ -85,11 +85,11 @@ export const projectSeed: ProjectSeed[] = [
     pitch: 'x402 pay-per-request for agents, settled privately over shielded Zcash.',
     targets: [zecathon],
     judgeScore: 8,
-    status: 'verified',
+    status: 'building',
     progress: 85,
     repo: gh('zec-shielded-x402'),
-    nextStep: 'Verified: 19/19 tests',
-    seedVersion: 2,
+    nextStep: 'Awaiting verifier attack run',
+    seedVersion: 3,
   },
   {
     id: 'private-payroll-rail',
@@ -104,14 +104,16 @@ export const projectSeed: ProjectSeed[] = [
   },
   {
     id: 'sealed-bid-auction',
-    name: 'Sealed-bid auction',
+    name: 'Sealed-Bid Auction',
     pitch: 'Bids stay shielded until reveal, so nobody can front-run or snipe.',
     targets: [zecathon],
     judgeScore: 6,
     status: 'idea',
     progress: 0,
     repo: null,
-    nextStep: 'Pick commit/reveal scheme',
+    nextStep: 'Optional for Zecathon — pick commit/reveal scheme if time allows',
+    flag: 'Optional',
+    seedVersion: 3,
   },
   {
     id: 'unlinkable-swaps',
@@ -162,12 +164,13 @@ export const projectSeed: ProjectSeed[] = [
     name: 'Hybrid PQ agent wallets',
     pitch: 'Agent wallets that sign with classical + post-quantum keys, with a migrator for existing accounts.',
     targets: [near],
-    judgeScore: 5,
+    judgeScore: 6.5,
+    scoreNote: 'Quantum-Safe Migrator merged in',
     status: 'idea',
     progress: 0,
     repo: null,
     nextStep: 'Choose PQ signature scheme',
-    seedVersion: 2,
+    seedVersion: 3,
   },
   {
     id: 'pq-confidential-intents',
