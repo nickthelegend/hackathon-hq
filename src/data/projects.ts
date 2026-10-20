@@ -9,7 +9,7 @@ export type ProjectStatus = 'idea' | 'building' | 'verified' | 'submitted'
 
 // Bump this and set `seedVersion` on a project to make its seed stage, progress, score and
 // next step override what a browser saved before that version.
-export const PROJECTS_SEED_VERSION = 10
+export const PROJECTS_SEED_VERSION = 11
 
 export type ProjectTarget = {
   hackathonId: string | null
@@ -76,13 +76,13 @@ export const projectSeed: ProjectSeed[] = [
     name: 'LEASH',
     pitch: 'Zero-knowledge spending mandates: agents can only pay inside a secret policy, even when prompt-injected.',
     targets: [{ hackathonId: 'paypal-ai-hackathon-137', label: 'PayPal AI' }],
-    judgeScore: 7,
-    scoreNote: 'Held at 7 until a PayPal sandbox order completes',
+    judgeScore: 7.5,
+    scoreNote: 'Cap enforced in the circuit, plus escrow and owner-only withdraw at a85ada8; 8.0 needs a PayPal sandbox order and the re-recorded demo',
     status: 'building',
     progress: 65,
     repo: gh('leash'),
     nextStep: "PayPal sandbox demo (needs Nick's sandbox creds), then demo video and submission",
-    seedVersion: 6,
+    seedVersion: 11,
   },
   {
     id: 'zec-shielded-x402',
@@ -94,9 +94,9 @@ export const projectSeed: ProjectSeed[] = [
     status: 'verified',
     progress: 90,
     repo: gh('zec-shielded-x402'),
-    nextStep: 'Video v2 under verifier review; Nick submits repo + video to Shielded Payments by Oct 28 23:59 UTC',
+    nextStep: 'Cleared - Nick submits 1e232bb + v2 video by Oct 28 23:59 UTC',
     flag: 'Zecathon entry',
-    seedVersion: 10,
+    seedVersion: 11,
   },
   {
     id: 'private-payroll-rail',
