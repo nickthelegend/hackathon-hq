@@ -9,7 +9,7 @@ export type ProjectStatus = 'idea' | 'building' | 'verified' | 'submitted'
 
 // Bump this and set `seedVersion` on a project to make its seed stage, progress, score and
 // next step override what a browser saved before that version.
-export const PROJECTS_SEED_VERSION = 14
+export const PROJECTS_SEED_VERSION = 15
 
 export type ProjectTarget = {
   hackathonId: string | null
@@ -193,6 +193,20 @@ export const projectSeed: ProjectSeed[] = [
     nextStep: 'Verifier review of near-hybrid-pq-wallet-build.bundle; Nick creates the repo',
     flag: 'Portfolio',
     seedVersion: 13,
+  },
+  {
+    id: 'near-null-402',
+    name: 'near-null-402',
+    pitch: 'Agents pay per API call on NEAR with a zero-knowledge proof; the settlement never names the payer.',
+    targets: [near],
+    judgeScore: 7,
+    scoreNote: 'Plan score; built Oct 20: Groth16 verified on-chain with alt_bn128, ML-DSA-65 merchant settlement, payer absent from settle txs, 6 attacks refused on testnet, real LLM agent via MCP, 20 sandbox tests; awaiting judge',
+    status: 'building',
+    progress: 85,
+    repo: gh('near-null-402'),
+    nextStep: 'Verifier review of near-null-402-build.bundle; Nick creates the repo; NEAR entry stays Q-Day (re-decide ~Nov 8)',
+    flag: 'Portfolio',
+    seedVersion: 15,
   },
   {
     id: 'pq-confidential-intents',
