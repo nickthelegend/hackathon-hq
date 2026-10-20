@@ -9,7 +9,7 @@ export type ProjectStatus = 'idea' | 'building' | 'verified' | 'submitted'
 
 // Bump this and set `seedVersion` on a project to make its seed stage, progress, score and
 // next step override what a browser saved before that version.
-export const PROJECTS_SEED_VERSION = 8
+export const PROJECTS_SEED_VERSION = 9
 
 export type ProjectTarget = {
   hackathonId: string | null
@@ -35,7 +35,9 @@ export type ProjectSeed = {
 
 const gh = (repo: string) => `https://github.com/nickthelegend/${repo}`
 
-const zecathon: ProjectTarget = { hackathonId: null, label: 'Zecathon', deadline: '2026-10-28' }
+// Zecathon allows one submission per account/team, entered in exactly one track.
+const zecathonEntry: ProjectTarget = { hackathonId: null, label: 'Zecathon · Shielded Payments track (entry)', deadline: '2026-10-28T23:59:00Z' }
+const zecathonNotEntered: ProjectTarget = { hackathonId: null, label: 'Zecathon (not entered)', deadline: null }
 const near: ProjectTarget = { hackathonId: null, label: 'NEAR (Nov 1–14)', deadline: '2026-11-14' }
 
 export const projectSeed: ProjectSeed[] = [
@@ -84,62 +86,68 @@ export const projectSeed: ProjectSeed[] = [
     id: 'zec-shielded-x402',
     name: 'Shielded x402 for AI agents',
     pitch: 'x402 pay-per-request for agents, settled privately over shielded Zcash.',
-    targets: [zecathon],
+    targets: [zecathonEntry],
     judgeScore: 8,
     scoreNote: 'Paid testnet run verified (txid 030c3cbf…8351)',
     status: 'building',
     progress: 60,
     repo: gh('zec-shielded-x402'),
-    nextStep: '2-min demo video, on-chain confirmation, code freeze Oct 26',
-    seedVersion: 7,
+    nextStep: '2-min demo video, on-chain confirmation, code freeze Oct 26; submit to Shielded Payments by Oct 28 23:59 UTC',
+    flag: 'Zecathon entry',
+    seedVersion: 9,
   },
   {
     id: 'private-payroll-rail',
     name: 'Private Payroll Rail',
     pitch: 'Shielded payroll: pay a team in ZEC without exposing salaries on-chain.',
-    targets: [zecathon],
+    targets: [zecathonNotEntered],
     judgeScore: 7.5,
     scoreNote: 'Live testnet payout verified: 2 employees, signed proofs pass verify-proof --lwd, 6 tamper attempts rejected',
-    status: 'idea',
-    progress: 0,
-    repo: null,
+    status: 'verified',
+    progress: 90,
+    repo: gh('zec-private-payroll'),
     nextStep: 'Record demo: payout, export proof, lender verifies, cross-proof rejected',
-    seedVersion: 8,
+    flag: 'Not entered: portfolio piece unless organisers allow a second entry (one submission per team)',
+    seedVersion: 9,
   },
   {
     id: 'sealed-bid-auction',
     name: 'Sealed-Bid Auction',
     pitch: 'Bids stay shielded until reveal, so nobody can front-run or snipe.',
-    targets: [zecathon],
+    targets: [zecathonNotEntered],
     judgeScore: 6,
     status: 'idea',
     progress: 0,
     repo: null,
-    nextStep: 'Optional for Zecathon — pick commit/reveal scheme if time allows',
-    flag: 'Optional',
-    seedVersion: 3,
+    nextStep: 'Not entered in Zecathon (one submission per team)',
+    flag: 'Not entered',
+    seedVersion: 9,
   },
   {
     id: 'unlinkable-swaps',
     name: 'Unlinkable swaps (wallet-side)',
     pitch: 'Wallet-side swaps that break the link between the shielded source and the swapped output.',
-    targets: [zecathon],
+    targets: [zecathonNotEntered],
     judgeScore: 5,
     status: 'idea',
     progress: 0,
     repo: null,
-    nextStep: 'Check swap provider support',
+    nextStep: 'Not entered in Zecathon (one submission per team)',
+    flag: 'Not entered',
+    seedVersion: 9,
   },
   {
     id: 'shielded-contract-sdk',
     name: 'Shielded-contract SDK',
     pitch: 'A developer SDK for building apps on top of shielded Zcash transactions.',
-    targets: [zecathon],
+    targets: [zecathonNotEntered],
     judgeScore: 5,
     status: 'idea',
     progress: 0,
     repo: null,
-    nextStep: 'List the primitives devs need',
+    nextStep: 'Not entered in Zecathon (one submission per team)',
+    flag: 'Not entered',
+    seedVersion: 9,
   },
   {
     id: 'qday-recovery-registry',
