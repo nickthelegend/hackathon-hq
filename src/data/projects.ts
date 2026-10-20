@@ -9,7 +9,7 @@ export type ProjectStatus = 'idea' | 'building' | 'verified' | 'submitted'
 
 // Bump this and set `seedVersion` on a project to make its seed stage, progress, score and
 // next step override what a browser saved before that version.
-export const PROJECTS_SEED_VERSION = 18
+export const PROJECTS_SEED_VERSION = 19
 
 export type ProjectTarget = {
   hackathonId: string | null
@@ -86,7 +86,7 @@ export const projectSeed: ProjectSeed[] = [
   },
   {
     id: 'zec-shielded-x402',
-    name: 'Shielded x402 for AI agents',
+    name: 'Kage (Shielded x402)',
     pitch: 'x402 pay-per-request for agents, settled privately over shielded Zcash.',
     targets: [zecathonEntry],
     judgeScore: 8.5,
@@ -96,7 +96,7 @@ export const projectSeed: ProjectSeed[] = [
     repo: gh('zec-shielded-x402'),
     nextStep: 'Cleared - Nick submits 1e232bb + v2 video by Oct 28 23:59 UTC',
     flag: 'Zecathon entry',
-    seedVersion: 11,
+    seedVersion: 19,
   },
   {
     id: 'private-payroll-rail',
@@ -114,7 +114,7 @@ export const projectSeed: ProjectSeed[] = [
   },
   {
     id: 'sealed-bid-auction',
-    name: 'Sealed-Bid Auction',
+    name: 'Fuin (sealed-bid auction)',
     pitch: 'Bids stay shielded until reveal, so nobody can front-run or snipe.',
     targets: [zecathonNotEntered],
     judgeScore: 7,
@@ -124,11 +124,11 @@ export const projectSeed: ProjectSeed[] = [
     repo: gh('zec-sealed-bid-auction'),
     nextStep: 'Verifier review of zec-sealed-bid-auction-build.bundle; Nick creates the repo',
     flag: 'Not entered: portfolio (Zecathon entry is Shielded x402)',
-    seedVersion: 14,
+    seedVersion: 19,
   },
   {
     id: 'unlinkable-swaps',
-    name: 'Unlinkable swaps (wallet-side)',
+    name: 'Lethe (unlinkable swaps)',
     pitch: 'Every swap out of Zcash gets a one-time refund address, so the public refundTo fields cannot link a wallet’s swaps.',
     targets: [zecathonNotEntered],
     judgeScore: 5.5,
@@ -138,11 +138,11 @@ export const projectSeed: ProjectSeed[] = [
     repo: gh('zec-unlinkable-swaps'),
     nextStep: 'Verifier review of zec-unlinkable-swaps-build.bundle; Nick: repo, and OK + mainnet ZEC for one real swap',
     flag: 'Not entered: portfolio; real swap BLOCKED',
-    seedVersion: 17,
+    seedVersion: 19,
   },
   {
     id: 'shielded-contract-sdk',
-    name: 'Payment-Verify SDK (zpay-verify)',
+    name: 'Hanko (payment-verify SDK)',
     pitch: 'Check a shielded Zcash payment (amount, memo, confirmations, nothing transparent) with only an incoming viewing key; the same call checks null-402 proofs on Fuji.',
     targets: [zecathonNotEntered],
     judgeScore: 6.5,
@@ -152,11 +152,11 @@ export const projectSeed: ProjectSeed[] = [
     repo: gh('zec-payment-verify-sdk'),
     nextStep: 'Verifier review of zec-payment-verify-sdk-build.bundle; Nick creates the repo (and npm/crates accounts to publish)',
     flag: 'Not entered: portfolio (Zecathon entry is Shielded x402)',
-    seedVersion: 16,
+    seedVersion: 19,
   },
   {
     id: 'qday-recovery-registry',
-    name: 'Q-Day Recovery for NEAR',
+    name: 'Phylax (Q-Day recovery)',
     pitch: 'Pre-register post-quantum recovery keys today so accounts survive Q-Day.',
     targets: [near],
     judgeScore: 7.5,
@@ -166,11 +166,11 @@ export const projectSeed: ProjectSeed[] = [
     repo: gh('near-qday-recovery'),
     nextStep: 'Verifier review of near-qday-recovery-build.bundle; Nick creates the GitHub repo; check the NEAR build-window rule before submitting by Nov 14 23:59 UTC',
     flag: 'NEAR entry',
-    seedVersion: 12,
+    seedVersion: 19,
   },
   {
     id: 'quantum-threat-dashboard',
-    name: 'Quantum Exposure on NEAR',
+    name: 'Argus (quantum exposure)',
     pitch: 'See which accounts and keys are exposed to a quantum attacker, and how urgently.',
     targets: [near],
     judgeScore: 7.5,
@@ -180,11 +180,11 @@ export const projectSeed: ProjectSeed[] = [
     repo: gh('near-quantum-threat-dashboard'),
     nextStep: 'Verifier review of near-quantum-threat-dashboard-build.bundle; Nick: GCP key for BTC/ETH, hosting OK, repo',
     flag: 'Portfolio',
-    seedVersion: 13,
+    seedVersion: 19,
   },
   {
     id: 'hybrid-pq-agent-wallets',
-    name: 'Hybrid PQ agent wallets',
+    name: 'Futago (hybrid PQ wallet)',
     pitch: 'Agent wallets that sign with classical + post-quantum keys, with a migrator for existing accounts.',
     targets: [near],
     judgeScore: 7.5,
@@ -194,11 +194,11 @@ export const projectSeed: ProjectSeed[] = [
     repo: gh('near-hybrid-pq-wallet'),
     nextStep: 'Verifier review of near-hybrid-pq-wallet-build.bundle; Nick creates the repo',
     flag: 'Portfolio',
-    seedVersion: 13,
+    seedVersion: 19,
   },
   {
     id: 'near-null-402',
-    name: 'near-null-402',
+    name: 'Nyx (near-null-402)',
     pitch: 'Agents pay per API call on NEAR with a zero-knowledge proof; the settlement never names the payer.',
     targets: [near],
     judgeScore: 7,
@@ -208,11 +208,11 @@ export const projectSeed: ProjectSeed[] = [
     repo: gh('near-null-402'),
     nextStep: 'Verifier review of near-null-402-build.bundle; Nick creates the repo; NEAR entry stays Q-Day (re-decide ~Nov 8)',
     flag: 'Portfolio',
-    seedVersion: 15,
+    seedVersion: 19,
   },
   {
     id: 'zec-null-402',
-    name: 'zec-null-402',
+    name: 'Kippu (zec-null-402)',
     pitch: 'One shielded Zcash deposit, then pay per API call with a zero-knowledge proof: no transaction per call.',
     targets: [zecathonNotEntered],
     judgeScore: 6,
@@ -222,11 +222,11 @@ export const projectSeed: ProjectSeed[] = [
     repo: gh('zec-null-402'),
     nextStep: 'Verifier review of zec-null-402-build.bundle; Nick creates the repo',
     flag: 'Not entered: portfolio (Zecathon entry is Shielded x402)',
-    seedVersion: 17,
+    seedVersion: 19,
   },
   {
     id: 'pq-confidential-intents',
-    name: 'PQ Intents on Zcash (zec-pq-intents)',
+    name: 'Yaksok (PQ intents)',
     pitch: 'Intents signed with ML-DSA-65 and sealed with ML-KEM-768, settled in shielded ZEC, with a signed, anchored decision log.',
     targets: [zecathonNotEntered],
     judgeScore: 6.5,
@@ -236,7 +236,7 @@ export const projectSeed: ProjectSeed[] = [
     repo: gh('zec-pq-intents'),
     nextStep: 'Verifier review of zec-pq-intents-build.bundle; Nick creates the repo',
     flag: 'Not entered: portfolio (Zecathon entry is Shielded x402)',
-    seedVersion: 17,
+    seedVersion: 19,
   },
   {
     id: 'witness',
