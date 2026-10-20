@@ -252,17 +252,15 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 /* ---------- Projects board ---------- */
 .status-p-idea { color: var(--gray); }
 .status-p-building { color: var(--yellow); }
-.status-p-testing { color: var(--orange); }
-.status-p-submitted { color: var(--blue); }
-.status-p-done { color: var(--green); }
-.status-p-done circle { fill: currentColor; }
-.status-p-done path { stroke: var(--panel); }
+.status-p-verified { color: var(--blue); }
+.status-p-submitted { color: var(--green); }
+.status-p-submitted circle { fill: currentColor; }
+.status-p-submitted path { stroke: var(--panel); }
 .stat-dot.p-idea { background: var(--gray); }
 .stat-dot.p-building { background: var(--yellow); }
-.stat-dot.p-testing { background: var(--orange); }
-.stat-dot.p-submitted { background: var(--blue); }
-.stat-dot.p-done { background: var(--green); }
-.stats-row.projects-stats { grid-template-columns: 1.1fr repeat(5, minmax(84px, .7fr)) 1.2fr 1.5fr; }
+.stat-dot.p-verified { background: var(--blue); }
+.stat-dot.p-submitted { background: var(--green); }
+.stats-row.projects-stats { grid-template-columns: 1.1fr repeat(4, minmax(84px, .7fr)) 1.2fr 1.5fr; }
 .stat-icon.accent { color: var(--accent-hover); background: var(--accent-soft); }
 .avg-stat .avg-body { flex: 1; }
 .avg-track { display: block !important; height: 3px; margin-top: 6px; border-radius: 2px; background: #ffffff14; overflow: hidden; }
@@ -387,13 +385,13 @@ button.target-link:hover svg:last-child { color: var(--accent-hover); }
   .stats-row .next-stat { grid-row: 1; grid-column: 5 / 7; border-right: 0; }
   .stats-row .stat-card.mini { grid-row: 2; border-top: 1px solid var(--border); }
   .stats-row .stat-card.mini:nth-child(7) { border-right: 0; }
-  /* Projects strip: 3 headline cells over 5 stage counts, on a shared 15-column grid. */
-  .stats-row.projects-stats { grid-template-columns: repeat(15, minmax(0, 1fr)); }
-  .stats-row.projects-stats .stat-card.total { grid-column: 1 / 6; }
-  .stats-row.projects-stats .avg-stat { grid-row: 1; grid-column: 6 / 11; }
-  .stats-row.projects-stats .next-stat { grid-column: 11 / 16; }
+  /* Projects strip: 3 headline cells over 4 stage counts, on a shared 12-column grid. */
+  .stats-row.projects-stats { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+  .stats-row.projects-stats .stat-card.total { grid-column: 1 / 5; }
+  .stats-row.projects-stats .avg-stat { grid-row: 1; grid-column: 5 / 9; }
+  .stats-row.projects-stats .next-stat { grid-column: 9 / 13; }
   .stats-row.projects-stats .stat-card.mini { grid-column: span 3; }
-  .stats-row.projects-stats .stat-card.mini:nth-child(6) { border-right: 0; }
+  .stats-row.projects-stats .stat-card.mini:nth-child(5) { border-right: 0; }
 }
 @media (max-width: 1250px) {
   .board-toolbar { align-items: stretch; flex-direction: column; }

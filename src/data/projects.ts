@@ -5,7 +5,11 @@
 // A target with a `hackathonId` is linked to that card on the Hackathons board and uses
 // its live deadline. Targets for events not on the board yet carry their own `deadline`.
 
-export type ProjectStatus = 'idea' | 'building' | 'testing' | 'submitted' | 'done'
+export type ProjectStatus = 'idea' | 'building' | 'verified' | 'submitted'
+
+// Bump this and set `seedVersion` on a project to make its seed stage, progress, score and
+// next step override what a browser saved before that version.
+export const PROJECTS_SEED_VERSION = 2
 
 export type ProjectTarget = {
   hackathonId: string | null
@@ -25,6 +29,8 @@ export type ProjectSeed = {
   repo: string | null
   nextStep: string
   flag?: string
+  /** Seed board fields win over board state saved before this PROJECTS_SEED_VERSION. */
+  seedVersion?: number
 }
 
 const gh = (repo: string) => `https://github.com/nickthelegend/${repo}`
@@ -42,7 +48,7 @@ export const projectSeed: ProjectSeed[] = [
       { hackathonId: 'life-after-code-gitlab-transcend-hackathon-68', label: 'GitLab Transcend' },
     ],
     judgeScore: 8.5,
-    status: 'testing',
+    status: 'verified',
     progress: 80,
     repo: gh('blackbox-receipts'),
     nextStep: 'Add Zetaris/Meterless keys + record demo video',
@@ -56,7 +62,7 @@ export const projectSeed: ProjectSeed[] = [
       { hackathonId: 'nebius-x-nvidia-global-ai-hackathon-79', label: 'Nebius x NVIDIA' },
     ],
     judgeScore: null,
-    status: 'testing',
+    status: 'verified',
     progress: 70,
     repo: gh('tasteprobe'),
     nextStep: 'Get Qloo + Nemotron API keys',
@@ -79,10 +85,11 @@ export const projectSeed: ProjectSeed[] = [
     pitch: 'x402 pay-per-request for agents, settled privately over shielded Zcash.',
     targets: [zecathon],
     judgeScore: 8,
-    status: 'building',
-    progress: 55,
+    status: 'verified',
+    progress: 85,
     repo: gh('zec-shielded-x402'),
-    nextStep: 'Stand up testnet lightwalletd + faucet',
+    nextStep: 'Verified: 19/19 tests',
+    seedVersion: 2,
   },
   {
     id: 'private-payroll-rail',
@@ -155,11 +162,12 @@ export const projectSeed: ProjectSeed[] = [
     name: 'Hybrid PQ agent wallets',
     pitch: 'Agent wallets that sign with classical + post-quantum keys, with a migrator for existing accounts.',
     targets: [near],
-    judgeScore: 6.5,
+    judgeScore: 5,
     status: 'idea',
     progress: 0,
     repo: null,
     nextStep: 'Choose PQ signature scheme',
+    seedVersion: 2,
   },
   {
     id: 'pq-confidential-intents',
@@ -191,7 +199,7 @@ export const projectSeed: ProjectSeed[] = [
     pitch: 'This board: every hackathon and every project, with live deadlines.',
     targets: [],
     judgeScore: null,
-    status: 'done',
+    status: 'submitted',
     progress: 100,
     repo: gh('hackathon-hq'),
     nextStep: 'Keep the seed data fresh',

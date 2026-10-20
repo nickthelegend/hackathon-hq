@@ -14,15 +14,14 @@ import {
 import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { ArrowDownWideNarrow, ArrowUpRight, Clock3, CornerDownRight, ExternalLink, FolderKanban, Gauge, Github, GripVertical, Lightbulb, Plus, RotateCcw, Search, SlidersHorizontal, Target, X } from 'lucide-react'
-import { projectSeed, type ProjectSeed, type ProjectStatus } from './data/projects'
+import { PROJECTS_SEED_VERSION, projectSeed, type ProjectSeed, type ProjectStatus } from './data/projects'
 import { Countdown, deadlineMs, formatDate, StatusGlyph } from './shared'
 
 export const projectColumns = [
   { id: 'idea', title: 'Idea', fill: 0, dashed: true },
   { id: 'building', title: 'Building', fill: 0.35, dashed: false },
-  { id: 'testing', title: 'Testing', fill: 0.6, dashed: false },
-  { id: 'submitted', title: 'Submitted', fill: 0.85, dashed: false },
-  { id: 'done', title: 'Won/Done', fill: 1, dashed: false },
+  { id: 'verified', title: 'Verified', fill: 0.7, dashed: false },
+  { id: 'submitted', title: 'Submitted', fill: 1, dashed: false },
 ] as const satisfies readonly { id: ProjectStatus; title: string; fill: number; dashed: boolean }[]
 
 export type Project = ProjectSeed & { notes: string }
@@ -33,26 +32,33 @@ type ResolvedTarget = { key: string; label: string; hackathonId: string | null; 
 const PROJECTS_KEY = 'hackathon-hq-projects-v1'
 const starterProjects: Project[] = projectSeed.map((item) => ({ ...item, notes: '' }))
 const isStatus = (value: unknown): value is ProjectStatus => projectColumns.some((column) => column.id === value)
+// Stages retired from the board map onto their nearest current stage so saved cards never vanish.
+const legacyStatus: Record<string, ProjectStatus> = { testing: 'verified', done: 'submitted' }
+const migrateStatus = (value: unknown): ProjectStatus => isStatus(value) ? value : (typeof value === 'string' && legacyStatus[value]) || 'idea'
 const clampProgress = (value: unknown) => typeof value === 'number' && Number.isFinite(value) ? Math.min(100, Math.max(0, Math.round(value))) : 0
 
 export function loadProjects(): Project[] {
   try {
     const saved = localStorage.getItem(PROJECTS_KEY)
     if (!saved) return starterProjects
-    const parsed = JSON.parse(saved) as { items?: Project[] }
+    const parsed = JSON.parse(saved) as { version?: number; items?: Project[] }
     if (!Array.isArray(parsed.items)) return starterProjects
     // Same rule as the hackathons board: seed facts win, the user's board state is restored on top.
     const savedById = new Map(parsed.items.map((item) => [item.id, item]))
     const seedIds = new Set(starterProjects.map((item) => item.id))
+    const savedVersion = typeof parsed.version === 'number' ? parsed.version : 1
     return [
       ...starterProjects.map((item) => {
         const prev = savedById.get(item.id)
-        return prev ? { ...item, status: prev.status, progress: prev.progress, judgeScore: prev.judgeScore, nextStep: prev.nextStep, repo: prev.repo, notes: prev.notes } : item
+        if (!prev) return item
+        // A seed update newer than the saved board resets that card's board fields (repo and notes stay).
+        if ((item.seedVersion ?? 0) > savedVersion) return { ...item, repo: prev.repo ?? item.repo, notes: prev.notes }
+        return { ...item, status: prev.status, progress: prev.progress, judgeScore: prev.judgeScore, nextStep: prev.nextStep, repo: prev.repo, notes: prev.notes }
       }),
       ...parsed.items.filter((item) => !seedIds.has(item.id) && typeof item.name === 'string'),
     ].map((item) => ({
       ...item,
-      status: isStatus(item.status) ? item.status : 'idea',
+      status: migrateStatus(item.status),
       progress: clampProgress(item.progress),
       judgeScore: typeof item.judgeScore === 'number' ? item.judgeScore : null,
       nextStep: typeof item.nextStep === 'string' ? item.nextStep : '',
@@ -67,7 +73,7 @@ export function loadProjects(): Project[] {
 }
 
 export function saveProjects(items: Project[]) {
-  try { localStorage.setItem(PROJECTS_KEY, JSON.stringify({ items })) } catch { /* storage unavailable: board still works for this session */ }
+  try { localStorage.setItem(PROJECTS_KEY, JSON.stringify({ version: PROJECTS_SEED_VERSION, items })) } catch { /* storage unavailable: board still works for this session */ }
 }
 
 export function resetProjects(): Project[] { return starterProjects }
@@ -133,7 +139,7 @@ function ProjectCard({ project, targets, onOpen, onOpenHackathon, dragging = fal
       <div className="target-list">
         {targets.length ? targets.map((target) => <TargetRow key={target.key} target={target} onOpenHackathon={onOpenHackathon} />) : <span className="target-none">No target hackathon</span>}
       </div>
-      <ProgressBar value={project.progress} done={project.status === 'done'} />
+      <ProgressBar value={project.progress} done={project.status === 'submitted'} />
       {project.nextStep && <div className="next-step"><CornerDownRight size={12} /><span>{project.nextStep}</span></div>}
     </article>
   )
@@ -222,7 +228,7 @@ export function ProjectsView({ projects, hackathons, targetFilter, onTargetFilte
   const active = projects.find((project) => project.id === activeId) ?? null
   const avgProgress = projects.length ? Math.round(projects.reduce((sum, project) => sum + project.progress, 0) / projects.length) : 0
   const upcoming = projects
-    .filter((project) => project.status !== 'done')
+    .filter((project) => project.status !== 'submitted')
     .map((project) => ({ project, target: nextDeadline(resolved.get(project.id) ?? [], minute) }))
     .filter((entry): entry is { project: Project; target: ResolvedTarget } => entry.target !== null)
     .sort((left, right) => (deadlineMs(left.target.deadline) ?? 0) - (deadlineMs(right.target.deadline) ?? 0))[0]
@@ -321,7 +327,7 @@ export function AddProjectDialog({ hackathons, onClose, onAdd }: { hackathons: H
       targets: hackathon ? [{ hackathonId: hackathon.id, label: hackathon.name }] : [],
       judgeScore: form.score === '' ? null : Math.min(10, Math.max(0, Number(form.score))),
       status: form.status,
-      progress: form.status === 'done' ? 100 : 0,
+      progress: form.status === 'submitted' ? 100 : 0,
       repo: repo || null,
       nextStep: form.nextStep.trim(),
       notes: '',

@@ -46,7 +46,7 @@ Each object follows this schema:
 
 ## Ideas & Projects board
 
-The second tab (also reachable at `#projects`) tracks project ideas through Idea → Building → Testing → Submitted → Won/Done. Its seed lives in `src/data/projects.ts`; each project has a `name`, one-line `pitch`, `targets`, nullable `judgeScore` (plus an optional `scoreNote`), `status`, `progress` (0–100), `repo`, `nextStep`, and an optional `flag` such as `Parked`.
+The second tab (also reachable at `#projects`) tracks project ideas through Idea → Building → Verified → Submitted. Its seed lives in `src/data/projects.ts`; each project has a `name`, one-line `pitch`, `targets`, nullable `judgeScore` (plus an optional `scoreNote`), `status`, `progress` (0–100), `repo`, `nextStep`, and an optional `flag` such as `Parked`.
 
 A target with a `hackathonId` links to that hackathon card and uses its deadline for the countdown. A target for an event that isn't on the hackathons board yet sets `hackathonId: null` and its own `deadline`. Hackathon cards show how many projects target them.
 
