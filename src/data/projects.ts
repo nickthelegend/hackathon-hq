@@ -9,7 +9,7 @@ export type ProjectStatus = 'idea' | 'building' | 'verified' | 'submitted'
 
 // Bump this and set `seedVersion` on a project to make its seed stage, progress, score and
 // next step override what a browser saved before that version.
-export const PROJECTS_SEED_VERSION = 15
+export const PROJECTS_SEED_VERSION = 16
 
 export type ProjectTarget = {
   hackathonId: string | null
@@ -141,16 +141,17 @@ export const projectSeed: ProjectSeed[] = [
   },
   {
     id: 'shielded-contract-sdk',
-    name: 'Shielded-contract SDK',
-    pitch: 'A developer SDK for building apps on top of shielded Zcash transactions.',
+    name: 'Payment-Verify SDK (zpay-verify)',
+    pitch: 'Check a shielded Zcash payment (amount, memo, confirmations, nothing transparent) with only an incoming viewing key; the same call checks null-402 proofs on Fuji.',
     targets: [zecathonNotEntered],
-    judgeScore: 5,
-    status: 'idea',
-    progress: 0,
-    repo: null,
-    nextStep: 'Not entered in Zecathon (one submission per team)',
-    flag: 'Not entered',
-    seedVersion: 9,
+    judgeScore: 6.5,
+    scoreNote: 'Plan score; built Oct 20: Rust crate + CLI, TS SDK, x402 paywall, MCP, dashboard; live paywall payment + 3 refused payments + payslip on testnet, 23 live tests, clean install; npm/crates publish needs Nick; awaiting judge',
+    status: 'building',
+    progress: 85,
+    repo: gh('zec-payment-verify-sdk'),
+    nextStep: 'Verifier review of zec-payment-verify-sdk-build.bundle; Nick creates the repo (and npm/crates accounts to publish)',
+    flag: 'Not entered: portfolio (Zecathon entry is Shielded x402)',
+    seedVersion: 16,
   },
   {
     id: 'qday-recovery-registry',
