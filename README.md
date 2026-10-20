@@ -44,6 +44,14 @@ Each object follows this schema:
 
 `notes` and `checklist` are board-only fields stored in local storage. Dates are ISO calendar dates. Null deadlines display safely, and rolling events show a `Rolling` badge. The board defaults to judge score descending and lets the team filter by format, source, and idea.
 
+## Ideas & Projects board
+
+The second tab (also reachable at `#projects`) tracks project ideas through Idea → Building → Testing → Submitted → Won/Done. Its seed lives in `src/data/projects.ts`; each project has a `name`, one-line `pitch`, `targets`, nullable `judgeScore` (plus an optional `scoreNote`), `status`, `progress` (0–100), `repo`, `nextStep`, and an optional `flag` such as `Parked`.
+
+A target with a `hackathonId` links to that hackathon card and uses its deadline for the countdown. A target for an event that isn't on the hackathons board yet sets `hackathonId: null` and its own `deadline`. Hackathon cards show how many projects target them.
+
+Saved state uses the same merge rule as the hackathons board: seed facts (name, pitch, targets) always come from `projects.ts`, while stage, progress, score, next step, repo, notes and custom projects are restored from local storage.
+
 ## Current seed
 
 The seed contains exactly 195 entries from the final `data-import/hacklist.json` list.

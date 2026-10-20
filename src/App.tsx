@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useSyncExternalStore, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import {
   closestCorners,
   DndContext,
@@ -24,11 +24,12 @@ import {
   Clock3,
   ExternalLink,
   Filter,
+  FolderKanban,
   Gauge,
   GripVertical,
-  Infinity as InfinityIcon,
   Layers3,
   LayoutGrid,
+  Lightbulb,
   Plus,
   RotateCcw,
   Search,
@@ -38,6 +39,8 @@ import {
   X,
 } from 'lucide-react'
 import seed from './data/hackathons.json'
+import { Countdown, formatDate, StatusGlyph } from './shared'
+import { AddProjectDialog, loadProjects, ProjectDrawer, projectColumns, ProjectsView, resetProjects, saveProjects, type Project } from './Projects'
 
 const columns = [
   { id: 'discovered', title: 'Discovered', color: 'slate' },
@@ -83,6 +86,14 @@ type Hackathon = {
 type BoardState = { items: Hackathon[] }
 
 const STORAGE_KEY = 'hackathon-hq-board-v3'
+const TAB_KEY = 'hackathon-hq-tab'
+type Tab = 'hackathons' | 'projects'
+
+function loadTab(): Tab {
+  if (window.location.hash === '#projects') return 'projects'
+  if (window.location.hash === '#hackathons') return 'hackathons'
+  try { return localStorage.getItem(TAB_KEY) === 'projects' ? 'projects' : 'hackathons' } catch { return 'hackathons' }
+}
 const ideaNames = [...new Set(seed.map((item) => item.judgeIdea).filter((idea): idea is string => Boolean(idea)))].sort()
 const starterItems = seed.map((item) => ({ ...item, status: boardStatus(item.status), rolling: item.rolling ?? false, judgeScore: item.judgeScore ?? null, judgeIdea: item.judgeIdea ?? null, prize: item.prize || 'TBA', free: item.free ?? null, notes: '', checklist: checklistLabels.map(() => false) })) as Hackathon[]
 
@@ -122,13 +133,6 @@ function loadBoard(): BoardState {
   }
 }
 
-function formatDate(value: string | null): string {
-  if (!value) return 'TBA'
-  const date = new Date(`${value}T00:00:00Z`)
-  if (Number.isNaN(date.getTime())) return 'TBA'
-  return new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }).format(date)
-}
-
 function daysLeft(value: string | null): number | null {
   if (!value) return null
   const deadline = Date.parse(`${value}T00:00:00Z`)
@@ -138,64 +142,10 @@ function daysLeft(value: string | null): number | null {
   return Math.ceil((deadline - today) / 86400000)
 }
 
-// One shared 1s ticker; only <Countdown> subscribes, so cards themselves don't re-render every second.
-const clockListeners = new Set<() => void>()
-let clockNow = Date.now()
-let clockTimer: number | undefined
-function subscribeClock(listener: () => void) {
-  clockListeners.add(listener)
-  if (clockTimer === undefined) {
-    clockNow = Date.now()
-    clockTimer = window.setInterval(() => { clockNow = Date.now(); clockListeners.forEach((notify) => notify()) }, 1000)
-  }
-  return () => {
-    clockListeners.delete(listener)
-    if (clockListeners.size === 0 && clockTimer !== undefined) { window.clearInterval(clockTimer); clockTimer = undefined }
-  }
-}
-function useNow(): number { return useSyncExternalStore(subscribeClock, () => clockNow) }
-
-const URGENT_MS = 72 * 3600 * 1000
-
-// Deadlines are calendar dates; treat them as closing at the end of that day (UTC).
-function deadlineMs(value: string | null): number | null {
-  if (!value) return null
-  const end = Date.parse(`${value}T23:59:59Z`)
-  return Number.isNaN(end) ? null : end
-}
-
-const pad = (value: number) => String(value).padStart(2, '0')
-
-function Countdown({ deadline, rolling }: { deadline: string | null; rolling: boolean }) {
-  const now = useNow()
-  if (rolling) return <span className="countdown is-rolling"><InfinityIcon size={12} />Rolling</span>
-  const end = deadlineMs(deadline)
-  if (end === null) return <span className="countdown is-muted"><Clock3 size={12} />No deadline</span>
-  const left = end - now
-  if (left <= 0) return <span className="countdown is-closed"><Clock3 size={12} />Closed</span>
-  const totalSeconds = Math.floor(left / 1000)
-  const days = Math.floor(totalSeconds / 86400)
-  const hours = Math.floor((totalSeconds % 86400) / 3600)
-  const minutes = Math.floor((totalSeconds % 3600) / 60)
-  const seconds = totalSeconds % 60
-  const urgent = left < URGENT_MS
-  const label = urgent ? `${days * 24 + hours}h ${pad(minutes)}m ${pad(seconds)}s` : `${days}d ${pad(hours)}h ${pad(minutes)}m`
-  return <span className={`countdown ${urgent ? 'is-urgent' : ''}`} title={`Closes ${formatDate(deadline)}, 23:59 UTC`}><Clock3 size={12} /><span className="countdown-value">{label}</span></span>
-}
-
 const statusFill: Record<ColumnId, number> = { discovered: 0, shortlisted: 0, approved: 0.25, building: 0.5, submitted: 0.75, results: 1 }
 
 function StatusIcon({ id }: { id: ColumnId }) {
-  const fill = statusFill[id]
-  const circumference = 2 * Math.PI * 2.5
-  return (
-    <svg className={`status-icon status-${id}`} width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
-      <circle cx="7" cy="7" r="6" fill="none" stroke="currentColor" strokeWidth="1.5" strokeDasharray={id === 'discovered' ? '1.4 1.75' : undefined} />
-      {fill === 1
-        ? <path d="M4.4 7.2l1.8 1.8 3.5-3.7" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-        : fill > 0 && <circle cx="7" cy="7" r="2.5" fill="none" stroke="currentColor" strokeWidth="5" strokeDasharray={`${fill * circumference} ${circumference}`} transform="rotate(-90 7 7)" />}
-    </svg>
-  )
+  return <StatusGlyph fill={statusFill[id]} dashed={id === 'discovered'} className={`status-${id}`} />
 }
 
 function ProgressRing({ done, total }: { done: number; total: number }) {
@@ -238,7 +188,9 @@ function Badge({ track }: { track: Track }) {
   return <span className={`track-badge ${track}`}>{track === 'web3' ? <Layers3 size={12} /> : track === 'ai' ? <Sparkles size={12} /> : <CircleHelp size={12} />}{label}</span>
 }
 
-function HackathonCard({ item, onOpen, dragging = false }: { item: Hackathon; onOpen: (id: string) => void; dragging?: boolean }) {
+type CardProps = { item: Hackathon; onOpen: (id: string) => void; projectCount: number; onShowProjects: (id: string) => void }
+
+function HackathonCard({ item, onOpen, projectCount, onShowProjects, dragging = false }: CardProps & { dragging?: boolean }) {
   const progress = item.checklist.filter(Boolean).length
   return (
     <article className={`hack-card ${dragging ? 'is-dragging' : ''}`} onClick={() => onOpen(item.id)}>
@@ -253,6 +205,7 @@ function HackathonCard({ item, onOpen, dragging = false }: { item: Hackathon; on
         <span className="chip prize-chip"><Trophy size={11} />{prize(item)}</span>
         {item.startDate && <span className="chip"><CalendarDays size={11} />{formatDate(item.startDate).replace(/, \d{4}$/, '')}</span>}
         {item.judgeIdea && <span className="chip idea-chip">{item.judgeIdea}</span>}
+        {projectCount > 0 && <button type="button" className="chip project-count-chip" title="Show projects targeting this hackathon" onClick={(event) => { event.stopPropagation(); onShowProjects(item.id) }}><FolderKanban size={11} />{projectCount} {projectCount === 1 ? 'project' : 'projects'}</button>}
       </div>
       <div className="card-foot">
         <Countdown deadline={item.deadline} rolling={item.rolling} />
@@ -262,24 +215,24 @@ function HackathonCard({ item, onOpen, dragging = false }: { item: Hackathon; on
   )
 }
 
-function SortableCard({ item, onOpen }: { item: Hackathon; onOpen: (id: string) => void }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id })
+function SortableCard(props: CardProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: props.item.id })
   const style = { transform: CSS.Transform.toString(transform), transition }
   return (
     <div ref={setNodeRef} style={style} className={`sortable-wrap ${isDragging ? 'dragging' : ''}`} {...attributes} {...listeners}>
-      <HackathonCard item={item} onOpen={onOpen} />
+      <HackathonCard {...props} />
     </div>
   )
 }
 
-function BoardColumn({ id, title, color, items, onOpen }: { id: ColumnId; title: string; color: string; items: Hackathon[]; onOpen: (id: string) => void }) {
+function BoardColumn({ id, title, color, items, onOpen, projectCounts, onShowProjects }: { id: ColumnId; title: string; color: string; items: Hackathon[]; onOpen: (id: string) => void; projectCounts: Map<string, number>; onShowProjects: (id: string) => void }) {
   const { setNodeRef, isOver } = useDroppable({ id: `column-${id}` })
   return (
     <section className={`board-column column-${color} ${isOver ? 'column-over' : ''}`} ref={setNodeRef}>
       <div className="column-heading"><StatusIcon id={id} /><h2>{title}</h2><span className="column-count">{items.length}</span></div>
       <SortableContext items={items.map((item) => item.id)} strategy={verticalListSortingStrategy}>
         <div className="column-cards">
-          {items.map((item) => <SortableCard key={item.id} item={item} onOpen={onOpen} />)}
+          {items.map((item) => <SortableCard key={item.id} item={item} onOpen={onOpen} projectCount={projectCounts.get(item.id) ?? 0} onShowProjects={onShowProjects} />)}
           {items.length === 0 && <div className="empty-column">Drop a hackathon here</div>}
         </div>
       </SortableContext>
@@ -287,7 +240,7 @@ function BoardColumn({ id, title, color, items, onOpen }: { id: ColumnId; title:
   )
 }
 
-function DetailDrawer({ item, onClose, onUpdate }: { item: Hackathon; onClose: () => void; onUpdate: (id: string, patch: Partial<Hackathon>) => void }) {
+function DetailDrawer({ item, projects, onClose, onUpdate, onOpenProject }: { item: Hackathon; projects: Project[]; onClose: () => void; onUpdate: (id: string, patch: Partial<Hackathon>) => void; onOpenProject: (id: string) => void }) {
   const completed = item.checklist.filter(Boolean).length
   return (
     <>
@@ -304,6 +257,9 @@ function DetailDrawer({ item, onClose, onUpdate }: { item: Hackathon; onClose: (
           </div>
           <section className="drawer-section score-section"><label className="field">Judge score (0–10)<input type="number" min="0" max="10" step="0.5" value={item.judgeScore ?? ''} placeholder="Not scored" onChange={(event) => onUpdate(item.id, { judgeScore: event.target.value === '' ? null : Math.min(10, Math.max(0, Number(event.target.value))) })} /></label>{item.judgeIdea && <div className="drawer-ideas"><span>Judge idea</span><div className="idea-tags"><span>{item.judgeIdea}</span></div></div>}<div className="drawer-ideas"><span>Source</span><div className="source-value">{item.source}</div></div></section>
           <a className="official-link" href={item.url} target="_blank" rel="noreferrer">Open official page <ExternalLink size={15} /></a>
+          {projects.length > 0 && <section className="drawer-section"><div className="section-title"><div><h3>Projects targeting this</h3><p>From the Ideas &amp; Projects board.</p></div><span className="check-count">{projects.length}</span></div>
+            <div className="linked-projects">{projects.map((project) => <button key={project.id} type="button" className="linked-project" onClick={() => onOpenProject(project.id)}><span className="linked-name">{project.name}</span><span className="linked-meta">{projectColumns.find((column) => column.id === project.status)?.title} · {project.progress}%</span><ArrowUpRight size={13} /></button>)}</div>
+          </section>}
           <section className="drawer-section"><div className="section-title"><div><h3>Build checklist</h3><p>Small steps, shipped one by one.</p></div><span className="check-count">{completed} of {checklistLabels.length}</span></div>
             <div className="checklist">{checklistLabels.map((label, index) => <label key={label} className={`check-item ${item.checklist[index] ? 'checked' : ''}`}><input type="checkbox" checked={item.checklist[index]} onChange={(event) => onUpdate(item.id, { checklist: item.checklist.map((checked, itemIndex) => itemIndex === index ? event.target.checked : checked) })} /><span className="fake-check"><Check size={12} /></span><span>{label}</span></label>)}</div>
           </section>
@@ -343,6 +299,11 @@ export default function App() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [showAdd, setShowAdd] = useState(false)
   const [activeId, setActiveId] = useState<string | null>(null)
+  const [tab, setTab] = useState<Tab>(loadTab)
+  const [projects, setProjects] = useState<Project[]>(loadProjects)
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
+  const [showAddProject, setShowAddProject] = useState(false)
+  const [projectTarget, setProjectTarget] = useState('all')
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 7 } }),
     // Long-press to drag on touch so a normal swipe still scrolls the board and columns.
@@ -351,6 +312,15 @@ export default function App() {
   )
 
   useEffect(() => { localStorage.setItem(STORAGE_KEY, JSON.stringify(board)) }, [board])
+  useEffect(() => { saveProjects(projects) }, [projects])
+  useEffect(() => { try { localStorage.setItem(TAB_KEY, tab) } catch { /* tab memory is a convenience */ } }, [tab])
+
+  // How many projects aim at each hackathon card (a project with two targets counts toward both).
+  const projectCounts = useMemo(() => {
+    const counts = new Map<string, number>()
+    projects.forEach((project) => new Set(project.targets.map((target) => target.hackathonId).filter(Boolean)).forEach((id) => counts.set(id as string, (counts.get(id as string) ?? 0) + 1)))
+    return counts
+  }, [projects])
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase()
@@ -404,13 +374,44 @@ export default function App() {
     setSelectedId(null)
   }
 
+  function updateProject(id: string, patch: Partial<Project>) {
+    setProjects((current) => current.map((project) => project.id === id ? { ...project, ...patch } : project))
+  }
+  function addProject(project: Project) {
+    setProjects((current) => [project, ...current])
+    setShowAddProject(false)
+  }
+  function showProjectsFor(hackathonId: string) {
+    setProjectTarget(hackathonId)
+    setSelectedId(null)
+    setTab('projects')
+  }
+  function openProject(id: string) {
+    setSelectedId(null)
+    setTab('projects')
+    setSelectedProjectId(id)
+  }
+  function openHackathon(id: string) {
+    setSelectedProjectId(null)
+    setSelectedId(id)
+  }
+
+  const selectedProject = projects.find((project) => project.id === selectedProjectId) ?? null
+  const tabs = [
+    { id: 'hackathons' as const, label: 'Hackathons', icon: <LayoutGrid size={15} />, count: board.items.length },
+    { id: 'projects' as const, label: 'Ideas & Projects', icon: <Lightbulb size={15} />, count: projects.length },
+  ]
+
   return <div className="app-shell">
     <aside className="sidebar"><a className="brand" href="#top"><span className="brand-mark"><Layers3 size={18} strokeWidth={2.2} /></span><span>hackathon<span className="brand-light">hq</span><small>TEAM WORKSPACE</small></span></a>
-      <div className="workspace-label">WORKSPACE</div><nav className="side-nav"><button className="nav-item selected"><LayoutGrid size={17} />Board<span className="nav-indicator" /></button></nav>
+      <div className="workspace-label">WORKSPACE</div><nav className="side-nav">{tabs.map((item) => <button key={item.id} className={`nav-item ${tab === item.id ? 'selected' : ''}`} onClick={() => setTab(item.id)}>{item.icon}{item.label}<span className="nav-count">{item.count}</span></button>)}</nav>
       <div className="sidebar-bottom"><div className="sidebar-team"><div className="avatar">N</div><div><strong>Nick's team</strong><span>Builder workspace</span></div><ChevronDown size={14} /></div><span className="version">HQ · 1.0.0</span></div>
     </aside>
-    <main id="top" className="main-content"><header className="topbar"><div className="breadcrumb"><span className="topbar-mark"><Layers3 size={14} strokeWidth={2.2} /></span>Workspace <span>/</span> <strong>Hackathons</strong></div><div className="top-actions"><span className="online-state"><span />All changes saved</span><button className="avatar small-avatar" title="Nick">N</button></div></header>
-      <div className="page-wrap"><section className="page-heading"><div><div className="heading-title"><span className="title-icon"><Sparkles size={20} /></span><h1>Hackathon board</h1></div><p>Every opportunity, one good idea away.</p></div><div className="heading-buttons"><button className="button subtle" onClick={resetBoard}><RotateCcw size={15} />Reset to seed</button><button className="button primary" onClick={() => setShowAdd(true)}><Plus size={17} />Add hackathon</button></div></section>
+    <main id="top" className="main-content"><header className="topbar"><div className="breadcrumb"><span className="topbar-mark"><Layers3 size={14} strokeWidth={2.2} /></span>Workspace <span>/</span> <strong>{tab === 'projects' ? 'Ideas & Projects' : 'Hackathons'}</strong></div><div className="top-actions"><span className="online-state"><span />All changes saved</span><button className="avatar small-avatar" title="Nick">N</button></div></header>
+      <div className="page-wrap">
+        <nav className="view-tabs" role="tablist" aria-label="Boards">{tabs.map((item) => <button key={item.id} role="tab" aria-selected={tab === item.id} className={`view-tab ${tab === item.id ? 'active' : ''}`} onClick={() => setTab(item.id)}>{item.icon}<span>{item.label}</span><span className="tab-count">{item.count}</span></button>)}</nav>
+        {tab === 'projects' ? <ProjectsView projects={projects} hackathons={board.items} targetFilter={projectTarget} onTargetFilter={setProjectTarget} onOpenProject={setSelectedProjectId} onOpenHackathon={openHackathon} onUpdate={updateProject} onAdd={() => setShowAddProject(true)} onReset={() => { setProjects(resetProjects()); setSelectedProjectId(null) }} /> : <>
+        <section className="page-heading"><div><div className="heading-title"><span className="title-icon"><Sparkles size={20} /></span><h1>Hackathon board</h1></div><p>Every opportunity, one good idea away.</p></div><div className="heading-buttons"><button className="button subtle" onClick={resetBoard}><RotateCcw size={15} />Reset to seed</button><button className="button primary" onClick={() => setShowAdd(true)}><Plus size={17} />Add hackathon</button></div></section>
         <section className="stats-row" aria-label="Board summary"><div className="stat-card total"><div className="stat-icon"><LayoutGrid size={17} /></div><div><span>Total hackathons</span><strong>{board.items.length}</strong></div><small className="stat-extra">on your radar</small></div>
           {columns.map((column) => <div className="stat-card mini" key={column.id}><div className={`stat-dot ${column.color}`} /><span>{column.title === 'Approved by Judge' ? 'Approved' : column.title}</span><strong>{board.items.filter((item) => item.status === column.id).length}</strong></div>)}
           <div className="stat-card prize-stat"><div className="stat-icon gold"><Trophy size={16} /></div><div><span>Approved + building</span><strong>{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(activePool)}</strong></div><small>USD prize pools</small></div>
@@ -428,13 +429,16 @@ export default function App() {
           </div>
         </div>
         <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={() => setActiveId(null)}>
-          <div className="board-scroll"><div className="kanban-board">{columns.map((column) => <BoardColumn key={column.id} id={column.id} title={column.title} color={column.color} items={filtered.filter((item) => item.status === column.id)} onOpen={setSelectedId} />)}</div></div>
-          <DragOverlay>{active ? <HackathonCard item={active} onOpen={() => undefined} dragging /> : null}</DragOverlay>
+          <div className="board-scroll"><div className="kanban-board">{columns.map((column) => <BoardColumn key={column.id} id={column.id} title={column.title} color={column.color} items={filtered.filter((item) => item.status === column.id)} onOpen={setSelectedId} projectCounts={projectCounts} onShowProjects={showProjectsFor} />)}</div></div>
+          <DragOverlay>{active ? <HackathonCard item={active} onOpen={() => undefined} projectCount={projectCounts.get(active.id) ?? 0} onShowProjects={() => undefined} dragging /> : null}</DragOverlay>
         </DndContext>
         <footer className="board-footer"><span><GripVertical size={14} />Drag cards between stages to keep your team in sync.</span><span><SlidersHorizontal size={14} />Board saved automatically</span></footer>
+        </>}
       </div>
     </main>
-    {selected && <DetailDrawer item={selected} onClose={() => setSelectedId(null)} onUpdate={updateItem} />}
+    {selected && <DetailDrawer item={selected} projects={projects.filter((project) => project.targets.some((target) => target.hackathonId === selected.id))} onClose={() => setSelectedId(null)} onUpdate={updateItem} onOpenProject={openProject} />}
+    {selectedProject && <ProjectDrawer project={selectedProject} hackathons={board.items} onClose={() => setSelectedProjectId(null)} onUpdate={updateProject} onOpenHackathon={openHackathon} />}
     {showAdd && <AddHackathonDialog onClose={() => setShowAdd(false)} onAdd={addItem} />}
+    {showAddProject && <AddProjectDialog hackathons={board.items} onClose={() => setShowAddProject(false)} onAdd={addProject} />}
   </div>
 }
