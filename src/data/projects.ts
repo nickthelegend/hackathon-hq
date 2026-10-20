@@ -9,7 +9,7 @@ export type ProjectStatus = 'idea' | 'building' | 'verified' | 'submitted'
 
 // Bump this and set `seedVersion` on a project to make its seed stage, progress, score and
 // next step override what a browser saved before that version.
-export const PROJECTS_SEED_VERSION = 5
+export const PROJECTS_SEED_VERSION = 6
 
 export type ProjectTarget = {
   hackathonId: string | null
@@ -72,13 +72,13 @@ export const projectSeed: ProjectSeed[] = [
     name: 'LEASH',
     pitch: 'Zero-knowledge spending mandates: agents can only pay inside a secret policy, even when prompt-injected.',
     targets: [{ hackathonId: 'paypal-ai-hackathon-137', label: 'PayPal AI' }],
-    judgeScore: 8,
-    scoreNote: '8+ after proof fix',
+    judgeScore: 7,
+    scoreNote: 'Held at 7 until a PayPal sandbox order completes',
     status: 'building',
     progress: 65,
     repo: gh('leash'),
     nextStep: "PayPal sandbox demo (needs Nick's sandbox creds), then demo video and submission",
-    seedVersion: 5,
+    seedVersion: 6,
   },
   {
     id: 'zec-shielded-x402',

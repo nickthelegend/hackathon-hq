@@ -86,7 +86,7 @@
     "track": "ai",
     "prize": "Up to $20,000",
     "startDate": null,
-    "deadline": "2026-10-20",
+    "deadline": "2026-10-22T23:59:00Z",
     "rolling": false,
     "format": "online",
     "location": null,

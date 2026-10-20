@@ -3,7 +3,7 @@ import { Clock3, Infinity as InfinityIcon } from 'lucide-react'
 
 export function formatDate(value: string | null): string {
   if (!value) return 'TBA'
-  const date = new Date(`${value}T00:00:00Z`)
+  const date = new Date(value.includes("T") ? value : `${value}T00:00:00Z`)
   if (Number.isNaN(date.getTime())) return 'TBA'
   return new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }).format(date)
 }
@@ -30,7 +30,7 @@ const URGENT_MS = 72 * 3600 * 1000
 // Deadlines are calendar dates; treat them as closing at the end of that day (UTC).
 export function deadlineMs(value: string | null): number | null {
   if (!value) return null
-  const end = Date.parse(`${value}T23:59:59Z`)
+  const end = Date.parse(value.includes("T") ? value : `${value}T23:59:59Z`)
   return Number.isNaN(end) ? null : end
 }
 

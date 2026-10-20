@@ -135,7 +135,7 @@ function loadBoard(): BoardState {
 
 function daysLeft(value: string | null): number | null {
   if (!value) return null
-  const deadline = Date.parse(`${value}T00:00:00Z`)
+  const deadline = Date.parse(value.includes("T") ? value : `${value}T00:00:00Z`)
   if (Number.isNaN(deadline)) return null
   const now = new Date()
   const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())
