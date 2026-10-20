@@ -9,7 +9,7 @@ export type ProjectStatus = 'idea' | 'building' | 'verified' | 'submitted'
 
 // Bump this and set `seedVersion` on a project to make its seed stage, progress, score and
 // next step override what a browser saved before that version.
-export const PROJECTS_SEED_VERSION = 7
+export const PROJECTS_SEED_VERSION = 8
 
 export type ProjectTarget = {
   hackathonId: string | null
@@ -98,11 +98,13 @@ export const projectSeed: ProjectSeed[] = [
     name: 'Private Payroll Rail',
     pitch: 'Shielded payroll: pay a team in ZEC without exposing salaries on-chain.',
     targets: [zecathon],
-    judgeScore: 7,
+    judgeScore: 7.5,
+    scoreNote: 'Live testnet payout verified: 2 employees, signed proofs pass verify-proof --lwd, 6 tamper attempts rejected',
     status: 'idea',
     progress: 0,
     repo: null,
-    nextStep: 'Scope the MVP flow',
+    nextStep: 'Record demo: payout, export proof, lender verifies, cross-proof rejected',
+    seedVersion: 8,
   },
   {
     id: 'sealed-bid-auction',
