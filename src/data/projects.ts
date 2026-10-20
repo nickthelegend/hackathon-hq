@@ -9,7 +9,7 @@ export type ProjectStatus = 'idea' | 'building' | 'verified' | 'submitted'
 
 // Bump this and set `seedVersion` on a project to make its seed stage, progress, score and
 // next step override what a browser saved before that version.
-export const PROJECTS_SEED_VERSION = 11
+export const PROJECTS_SEED_VERSION = 12
 
 export type ProjectTarget = {
   hackathonId: string | null
@@ -153,14 +153,17 @@ export const projectSeed: ProjectSeed[] = [
   },
   {
     id: 'qday-recovery-registry',
-    name: 'Q-Day Recovery Registry client',
+    name: 'Q-Day Recovery for NEAR',
     pitch: 'Pre-register post-quantum recovery keys today so accounts survive Q-Day.',
     targets: [near],
-    judgeScore: 7,
-    status: 'idea',
-    progress: 0,
-    repo: null,
-    nextStep: 'Read the registry spec',
+    judgeScore: 7.5,
+    scoreNote: 'Plan score; built Oct 20: ML-DSA-65 recovery verified on-chain on testnet (protocol 87), 6 attacks rejected on-chain, 33 sandbox tests; awaiting judge',
+    status: 'building',
+    progress: 85,
+    repo: gh('near-qday-recovery'),
+    nextStep: 'Verifier review of near-qday-recovery-build.bundle; Nick creates the GitHub repo; check the NEAR build-window rule before submitting by Nov 14 23:59 UTC',
+    flag: 'NEAR entry',
+    seedVersion: 12,
   },
   {
     id: 'quantum-threat-dashboard',
