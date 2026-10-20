@@ -9,7 +9,7 @@ export type ProjectStatus = 'idea' | 'building' | 'verified' | 'submitted'
 
 // Bump this and set `seedVersion` on a project to make its seed stage, progress, score and
 // next step override what a browser saved before that version.
-export const PROJECTS_SEED_VERSION = 12
+export const PROJECTS_SEED_VERSION = 13
 
 export type ProjectTarget = {
   hackathonId: string | null
@@ -167,27 +167,31 @@ export const projectSeed: ProjectSeed[] = [
   },
   {
     id: 'quantum-threat-dashboard',
-    name: 'Quantum-threat dashboard',
+    name: 'Quantum Exposure on NEAR',
     pitch: 'See which accounts and keys are exposed to a quantum attacker, and how urgently.',
     targets: [near],
-    judgeScore: 7,
-    status: 'idea',
-    progress: 0,
-    repo: null,
-    nextStep: 'Pick the exposure metrics',
+    judgeScore: 7.5,
+    scoreNote: 'Plan score; built Oct 20: block-pinned live snapshots (mainnet: 119 of 120 sampled signers harvestable, 0 of 521 txs ML-DSA), re-run verify, 18 live tests; BTC/ETH BLOCKED on a GCP key; awaiting judge',
+    status: 'building',
+    progress: 80,
+    repo: gh('near-quantum-threat-dashboard'),
+    nextStep: 'Verifier review of near-quantum-threat-dashboard-build.bundle; Nick: GCP key for BTC/ETH, hosting OK, repo',
+    flag: 'Portfolio',
+    seedVersion: 13,
   },
   {
     id: 'hybrid-pq-agent-wallets',
     name: 'Hybrid PQ agent wallets',
     pitch: 'Agent wallets that sign with classical + post-quantum keys, with a migrator for existing accounts.',
     targets: [near],
-    judgeScore: 6.5,
-    scoreNote: 'Quantum-Safe Migrator merged in',
-    status: 'idea',
-    progress: 0,
-    repo: null,
-    nextStep: 'Choose PQ signature scheme',
-    seedVersion: 3,
+    judgeScore: 7.5,
+    scoreNote: 'Plan score; built Oct 20: ed25519 AND ML-DSA-65 checked on-chain, either alone rejected on testnet, on-chain agent cap hit by a real LLM agent (injected 2 NEAR refused), escalate to ML-DSA-only; 20 sandbox tests; awaiting judge',
+    status: 'building',
+    progress: 85,
+    repo: gh('near-hybrid-pq-wallet'),
+    nextStep: 'Verifier review of near-hybrid-pq-wallet-build.bundle; Nick creates the repo',
+    flag: 'Portfolio',
+    seedVersion: 13,
   },
   {
     id: 'pq-confidential-intents',
