@@ -46,7 +46,9 @@ export const projectSeed: ProjectSeed[] = [
     name: 'Blackbox Receipts',
     pitch: 'A verifiable flight recorder for agents: signed, hash-chained receipts for every action.',
     targets: [
-      { hackathonId: 'open-agent-hackathon-2026-5', label: 'Open Agent · Wildcard' },
+      // Open Agent has two cut-offs: registration closes before the submission deadline on its card.
+      { hackathonId: null, label: 'Open Agent · registration', deadline: '2026-10-22T23:59:00Z' },
+      { hackathonId: 'open-agent-hackathon-2026-5', label: 'Open Agent · Wildcard submission' },
       { hackathonId: 'life-after-code-gitlab-transcend-hackathon-68', label: 'GitLab Transcend' },
     ],
     judgeScore: 8.5,
