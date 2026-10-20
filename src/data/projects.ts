@@ -9,7 +9,7 @@ export type ProjectStatus = 'idea' | 'building' | 'verified' | 'submitted'
 
 // Bump this and set `seedVersion` on a project to make its seed stage, progress, score and
 // next step override what a browser saved before that version.
-export const PROJECTS_SEED_VERSION = 17
+export const PROJECTS_SEED_VERSION = 18
 
 export type ProjectTarget = {
   hackathonId: string | null
@@ -77,12 +77,12 @@ export const projectSeed: ProjectSeed[] = [
     pitch: 'Zero-knowledge spending mandates: agents can only pay inside a secret policy, even when prompt-injected.',
     targets: [{ hackathonId: 'paypal-ai-hackathon-137', label: 'PayPal AI' }],
     judgeScore: 7.5,
-    scoreNote: 'Cap enforced in the circuit, plus escrow and owner-only withdraw at a85ada8; 8.0 needs a PayPal sandbox order and the re-recorded demo',
+    scoreNote: 'Cap enforced in the circuit; per-policy escrow, owner-only withdraw, front-run fixed by keying policies on (owner, commitment) at 8826bcf; 96 tests; Anvil + LLM agent demo re-recorded Oct 20; 8.0 needs a PayPal sandbox order',
     status: 'building',
-    progress: 65,
+    progress: 75,
     repo: gh('leash'),
-    nextStep: "PayPal sandbox demo (needs Nick's sandbox creds), then demo video and submission",
-    seedVersion: 11,
+    nextStep: "Push leash-units-on-vf8 (5 commits on 8826bcf: CI PATH fix, units, MCP log, docs, demo); PayPal sandbox order needs Nick's sandbox creds (Nov 12)",
+    seedVersion: 18,
   },
   {
     id: 'zec-shielded-x402',
