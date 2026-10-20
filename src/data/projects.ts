@@ -9,7 +9,7 @@ export type ProjectStatus = 'idea' | 'building' | 'verified' | 'submitted'
 
 // Bump this and set `seedVersion` on a project to make its seed stage, progress, score and
 // next step override what a browser saved before that version.
-export const PROJECTS_SEED_VERSION = 9
+export const PROJECTS_SEED_VERSION = 10
 
 export type ProjectTarget = {
   hackathonId: string | null
@@ -89,14 +89,14 @@ export const projectSeed: ProjectSeed[] = [
     name: 'Shielded x402 for AI agents',
     pitch: 'x402 pay-per-request for agents, settled privately over shielded Zcash.',
     targets: [zecathonEntry],
-    judgeScore: 8,
-    scoreNote: 'Paid testnet run verified (txid 030c3cbf…8351)',
-    status: 'building',
-    progress: 60,
+    judgeScore: 8.5,
+    scoreNote: 'Demo tx cd64980a… (block 4521440) verified fully shielded, Ironwood-only',
+    status: 'verified',
+    progress: 90,
     repo: gh('zec-shielded-x402'),
-    nextStep: '2-min demo video, on-chain confirmation, code freeze Oct 26; submit to Shielded Payments by Oct 28 23:59 UTC',
+    nextStep: 'Video v2 under verifier review; Nick submits repo + video to Shielded Payments by Oct 28 23:59 UTC',
     flag: 'Zecathon entry',
-    seedVersion: 9,
+    seedVersion: 10,
   },
   {
     id: 'private-payroll-rail',
