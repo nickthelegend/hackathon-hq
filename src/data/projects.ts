@@ -9,7 +9,7 @@ export type ProjectStatus = 'idea' | 'building' | 'verified' | 'submitted'
 
 // Bump this and set `seedVersion` on a project to make its seed stage, progress, score and
 // next step override what a browser saved before that version.
-export const PROJECTS_SEED_VERSION = 13
+export const PROJECTS_SEED_VERSION = 14
 
 export type ProjectTarget = {
   hackathonId: string | null
@@ -117,13 +117,14 @@ export const projectSeed: ProjectSeed[] = [
     name: 'Sealed-Bid Auction',
     pitch: 'Bids stay shielded until reveal, so nobody can front-run or snipe.',
     targets: [zecathonNotEntered],
-    judgeScore: 6,
-    status: 'idea',
-    progress: 0,
-    repo: null,
-    nextStep: 'Not entered in Zecathon (one submission per team)',
-    flag: 'Not entered',
-    seedVersion: 9,
+    judgeScore: 7,
+    scoreNote: 'Plan score; built Oct 20: live testnet auction with 3 sealed bids and 4 rejected deposits, MaxBid Groth16 proof publishes only the winning bid, one Ironwood-only settlement checked by each viewing key, 15 tests; awaiting judge',
+    status: 'building',
+    progress: 85,
+    repo: gh('zec-sealed-bid-auction'),
+    nextStep: 'Verifier review of zec-sealed-bid-auction-build.bundle; Nick creates the repo',
+    flag: 'Not entered: portfolio (Zecathon entry is Shielded x402)',
+    seedVersion: 14,
   },
   {
     id: 'unlinkable-swaps',
