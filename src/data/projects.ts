@@ -9,7 +9,7 @@ export type ProjectStatus = 'idea' | 'building' | 'verified' | 'submitted'
 
 // Bump this and set `seedVersion` on a project to make its seed stage, progress, score and
 // next step override what a browser saved before that version.
-export const PROJECTS_SEED_VERSION = 19
+export const PROJECTS_SEED_VERSION = 20
 
 export type ProjectTarget = {
   hackathonId: string | null
@@ -240,15 +240,19 @@ export const projectSeed: ProjectSeed[] = [
   },
   {
     id: 'witness',
-    name: 'WITNESS',
-    pitch: 'Pitch to be written once the Meta application is accepted.',
-    targets: [{ hackathonId: 'meta-global-ai-developer-hackathon-44', label: 'Meta Global AI' }],
-    judgeScore: 6.5,
-    status: 'idea',
-    progress: 0,
-    repo: null,
-    nextStep: 'Wait for Meta acceptance',
-    flag: 'On hold until accepted',
+    name: 'Hasami (Muse + SAM + SO-101)',
+    pitch: 'Say what to move: Muse plans from the camera frame, SAM segments each object, depth turns the mask into a grasp, and an SO-101 arm picks and places it.',
+    targets: [
+      { hackathonId: null, label: 'Meta Global AI · apply by', deadline: '2026-10-26T03:59:00Z' },
+      { hackathonId: null, label: 'Meta Global AI · submission (Indie)', deadline: '2026-11-05T02:00:00Z' },
+    ],
+    judgeScore: null,
+    status: 'building',
+    progress: 45,
+    repo: gh('hasami'),
+    nextStep: 'Nick applies by Oct 25 23:59 ET; MODEL_API_KEY (dev.meta.ai) for the Muse planner and SAM 3.1; SO-101 arm optional (sim works: 9/9 picks)',
+    flag: 'Check the official rules (published before Oct 26) for a build-window clause',
+    seedVersion: 20,
   },
   {
     id: 'hackathon-hq',
