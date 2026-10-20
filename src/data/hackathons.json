@@ -2855,7 +2855,7 @@
     "source": "hackathons.fun (Luma)",
     "description": null,
     "free": null,
-    "judgeScore": null,
+    "judgeScore": 1.5,
     "judgeIdea": null,
     "status": "discovered"
   },
@@ -3375,7 +3375,7 @@
     "source": "hackathons.fun (Hand-picked)",
     "description": null,
     "free": null,
-    "judgeScore": null,
+    "judgeScore": 4,
     "judgeIdea": null,
     "status": "discovered"
   },
@@ -3515,7 +3515,7 @@
     "source": "hackathons.fun (Luma)",
     "description": null,
     "free": null,
-    "judgeScore": null,
+    "judgeScore": 1.5,
     "judgeIdea": null,
     "status": "discovered"
   },
@@ -3755,7 +3755,7 @@
     "source": "hackathons.fun (Luma)",
     "description": null,
     "free": null,
-    "judgeScore": null,
+    "judgeScore": 1.5,
     "judgeIdea": null,
     "status": "discovered"
   },
