@@ -287,6 +287,14 @@ export default function App() {
   useEffect(() => { saveProjects(projects) }, [projects])
   useEffect(() => { try { localStorage.setItem(TAB_KEY, tab) } catch { /* tab memory is a convenience */ } }, [tab])
   useEffect(() => {
+    // Back/forward and typed #projects / #hackathons links switch boards too.
+    function onHash() {
+      if (window.location.hash === '#projects' || window.location.hash === '#hackathons') setTab(loadTab())
+    }
+    window.addEventListener('hashchange', onHash)
+    return () => window.removeEventListener('hashchange', onHash)
+  }, [])
+  useEffect(() => {
     function onKey(event: KeyboardEvent) {
       if (event.key !== 'Escape') return
       if (showAdd) setShowAdd(false)
