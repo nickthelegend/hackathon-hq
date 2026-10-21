@@ -9,7 +9,7 @@ export type ProjectStatus = 'idea' | 'building' | 'verified' | 'submitted'
 
 // Bump this and set `seedVersion` on a project to make its seed stage, progress, score and
 // next step override what a browser saved before that version.
-export const PROJECTS_SEED_VERSION = 20
+export const PROJECTS_SEED_VERSION = 21
 
 export type ProjectTarget = {
   hackathonId: string | null
@@ -94,9 +94,9 @@ export const projectSeed: ProjectSeed[] = [
     status: 'verified',
     progress: 90,
     repo: gh('zec-shielded-x402'),
-    nextStep: 'Cleared - Nick submits 1e232bb + v2 video by Oct 28 23:59 UTC',
+    nextStep: 'Nick submits 7995653 + v2 video by Oct 28 23:59 UTC',
     flag: 'Zecathon entry',
-    seedVersion: 19,
+    seedVersion: 21,
   },
   {
     id: 'private-payroll-rail',
