@@ -3,7 +3,7 @@ import { ArrowUpRight, Check, ExternalLink, Info, PlaneTakeoff, Plus, RotateCcw,
 import { deadlineMs, formatDate, useMinute, zoneClock } from './board'
 import { DeadlineClock, FlapCountdown, SplitFlap } from './shared'
 import { AddProjectDialog, PassesView, ProjectDrawer } from './Projects'
-import { checklistLabels, columns, ideaNames, loadBoard, loadProjects, patchHackathon, projectColumns, resetProjects, saveBoard, saveProjects, starterItems, type ColumnId, type EventFormat, type Hackathon, type Project, type Track } from './store'
+import { BOARD_KEY, checklistLabels, columns, ideaNames, loadBoard, loadProjects, patchHackathon, PROJECTS_KEY, projectColumns, resetProjects, saveBoard, saveProjects, starterItems, type ColumnId, type EventFormat, type Hackathon, type Project, type Track } from './store'
 import { buildFlights, combineStatus, compareFlights, shortName, statusLabel, statusRule, type Flight, type FlightStatus } from './flights'
 import { StatusTag } from './StatusTag'
 
@@ -217,6 +217,15 @@ export default function App() {
 
   useEffect(() => { saveBoard(board.items) }, [board])
   useEffect(() => { saveProjects(projects) }, [projects])
+  useEffect(() => {
+    // Another tab saved: take its board, so this tab's next save carries both tabs' changes.
+    function onStorage(event: StorageEvent) {
+      if (event.key === BOARD_KEY || event.key === null) setBoard({ items: loadBoard() })
+      if (event.key === PROJECTS_KEY || event.key === null) setProjects(loadProjects())
+    }
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [])
   useEffect(() => { try { localStorage.setItem(TAB_KEY, tab) } catch { /* tab memory is a convenience */ } }, [tab])
   useEffect(() => {
     // Back/forward and typed #projects / #hackathons links switch boards too. Going back to the
