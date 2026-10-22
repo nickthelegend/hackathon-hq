@@ -263,6 +263,10 @@ h1, h2, h3 { margin: 0; }
 .pass-fields dt { font: 500 10px var(--mono); text-transform: uppercase; letter-spacing: 0.07em; color: var(--paper-muted); }
 .pass-fields dd { margin: 2px 0 0; font: 700 21px/1.1 var(--sans); font-stretch: 85%; }
 .pass-fields small { display: block; font: 400 10px var(--mono); color: var(--paper-muted); }
+.score-flag { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin: 0; padding: 8px 12px; border: 1px dashed var(--paper-amber); border-radius: 6px; font-size: 12.5px; line-height: 1.4; color: var(--paper-muted); }
+.score-flag svg { color: var(--paper-amber); flex: none; }
+.score-flag strong { font: 600 11px var(--sans); text-transform: uppercase; letter-spacing: 0.08em; color: var(--paper-amber); }
+.score-flag span { flex: 1 1 220px; }
 .pass-keys { display: grid; gap: 6px; padding: 10px 12px; background: #0e11160a; border-radius: 6px; }
 .pass-keys.is-blocked { background: #b3261b10; box-shadow: inset 3px 0 0 var(--red); }
 .pass-keys.is-blocked .pass-label { color: var(--paper-red); }

@@ -1,5 +1,5 @@
 import { useMemo, useState, type FormEvent } from 'react'
-import { ArrowUpRight, ExternalLink, KeyRound, PlaneTakeoff, Plus, RotateCcw, Search, TicketsPlane, X } from 'lucide-react'
+import { ArrowUpRight, ExternalLink, KeyRound, PlaneTakeoff, Plus, RotateCcw, Search, TicketsPlane, TriangleAlert, X } from 'lucide-react'
 import { type ProjectStatus } from './data/projects'
 import { deadlineMs, formatDate, safeHttpsUrl, useMinute } from './board'
 import { DeadlineClock, FlapCountdown } from './shared'
@@ -43,6 +43,9 @@ function BoardingPass({ project, flights, onOpen, onOpenHackathon }: { project: 
   const workingName = aka(project.name)
   const name = shortName(project.name)
   const repo = safeHttpsUrl(project.repo)
+  // A judge score far from the latest self-review is flagged, so neither is read as current readiness.
+  const latestReview = review ? Number(review.after ?? review.before) : null
+  const scoreGap = project.judgeScore !== null && latestReview !== null ? Math.abs(project.judgeScore - latestReview) : 0
   return (
     <article className={`pass ${status ? `pass-${status}` : ''}`} aria-labelledby={`pass-${project.id}`}>
       <div className="pass-main">
@@ -62,6 +65,7 @@ function BoardingPass({ project, flights, onOpen, onOpenHackathon }: { project: 
           <div><dt>Progress</dt><dd>{project.progress}%</dd></div>
           <div><dt>Stage</dt><dd>{stage}</dd></div>
         </dl>
+        {scoreGap >= 2 && review && <p className="score-flag"><TriangleAlert size={13} aria-hidden="true" /><strong>Scores disagree</strong><span>Judge {project.judgeScore} vs self-review {latestReview} ({review.when}), {scoreGap} apart. Read the score note before taking either as current.</span></p>}
         <div className={`pass-keys ${blocked ? 'is-blocked' : ''}`}>
           <span className="pass-label"><KeyRound size={12} aria-hidden="true" />Missing keys</span>
           {blocked
