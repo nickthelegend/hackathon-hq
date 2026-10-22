@@ -299,9 +299,11 @@ export default function App() {
   useEffect(() => { saveProjects(projects) }, [projects])
   useEffect(() => { try { localStorage.setItem(TAB_KEY, tab) } catch { /* tab memory is a convenience */ } }, [tab])
   useEffect(() => {
-    // Back/forward and typed #projects / #hackathons links switch boards too.
+    // Back/forward and typed #projects / #hackathons links switch boards too. Going back to the
+    // bare URL (the history entry before the first tab click) is the Departures board.
     function onHash() {
       if (window.location.hash === '#projects' || window.location.hash === '#hackathons') setTab(loadTab())
+      else if (window.location.hash === '') setTab('hackathons')
     }
     window.addEventListener('hashchange', onHash)
     return () => window.removeEventListener('hashchange', onHash)
