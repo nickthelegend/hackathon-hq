@@ -267,7 +267,8 @@ export default function App() {
     .sort((left, right) => (deadlineMs(left.deadline) ?? Infinity) - (deadlineMs(right.deadline) ?? Infinity))[0] ?? null
   const visibleFlights = statusFilter === 'all' ? flights : flights.filter((flight) => flight.status === statusFilter)
 
-  const filtered = useMemo(() => {
+  // Every filter except the "closed rows are hidden" rule, so the hidden count matches what Show closed adds.
+  const matching = useMemo(() => {
     const query = search.trim().toLowerCase()
     return board.items.filter((item) => {
       const status = statuses.get(item.id) ?? 'scheduled'
@@ -277,9 +278,13 @@ export default function App() {
       const matchesSource = sourceFilter === 'all' || sourceFamily(item.source) === sourceFilter
       const matchesIdea = ideaFilter === 'all' || item.judgeIdea === ideaFilter
       const matchesStage = stageFilter === 'all' || item.status === stageFilter
-      const matchesStatus = statusFilter === 'all' ? (showClosed || status !== 'closed') : status === statusFilter
+      const matchesStatus = statusFilter === 'all' || status === statusFilter
       return matchesSearch && matchesTrack && matchesFormat && matchesSource && matchesIdea && matchesStage && matchesStatus
-    }).sort((left, right) => {
+    })
+  }, [board.items, statuses, search, trackFilter, formatFilter, sourceFilter, ideaFilter, stageFilter, statusFilter])
+  const hidesClosed = statusFilter === 'all' && !showClosed
+  const filtered = useMemo(() => {
+    return matching.filter((item) => !hidesClosed || statuses.get(item.id) !== 'closed').sort((left, right) => {
       if (sortBy === 'judgeScore') {
         if (left.judgeScore === null) return right.judgeScore === null ? 0 : 1
         if (right.judgeScore === null) return -1
@@ -292,9 +297,9 @@ export default function App() {
       if (rightEnd === null) return -1
       return sortBy === 'soonest' ? leftEnd - rightEnd : rightEnd - leftEnd
     })
-  }, [board.items, statuses, search, trackFilter, formatFilter, sourceFilter, ideaFilter, stageFilter, statusFilter, showClosed, sortBy])
+  }, [matching, hidesClosed, statuses, sortBy])
 
-  const closedHidden = statusFilter === 'all' && !showClosed ? board.items.filter((item) => statuses.get(item.id) === 'closed').length : 0
+  const closedHidden = hidesClosed ? matching.length - filtered.length : 0
   const filtersOn = search.trim() !== '' || trackFilter !== 'all' || formatFilter !== 'all' || sourceFilter !== 'all' || ideaFilter !== 'all' || stageFilter !== 'all' || statusFilter !== 'all'
   function clearFilters() {
     setSearch(''); setTrackFilter('all'); setFormatFilter('all'); setSourceFilter('all'); setIdeaFilter('all'); setStageFilter('all'); setStatusFilter('all'); setLimit(PAGE)
