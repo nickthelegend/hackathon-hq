@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { ArrowUpRight, Check, ExternalLink, Info, PlaneTakeoff, Plus, RotateCcw, Search, TicketsPlane, X } from 'lucide-react'
 import seed from './data/hackathons.json'
 import { DeadlineClock, deadlineMs, FlapCountdown, formatDate, SplitFlap, useMinute, zoneClock } from './shared'
@@ -282,6 +282,18 @@ export default function App() {
   const [showAddProject, setShowAddProject] = useState(false)
   const [projectTarget, setProjectTarget] = useState('all')
   const now = useMinute()
+  // The control that opened the first drawer or dialog gets focus back when they have all closed.
+  const opener = useRef<HTMLElement | null>(null)
+  const overlayOpen = selectedId !== null || selectedProjectId !== null || showAdd || showAddProject
+  function noteOpener() {
+    if (!overlayOpen && document.activeElement instanceof HTMLElement && document.activeElement !== document.body) opener.current = document.activeElement
+  }
+  useEffect(() => {
+    if (overlayOpen) return
+    const element = opener.current
+    opener.current = null
+    if (element?.isConnected) element.focus()
+  }, [overlayOpen])
 
   useEffect(() => { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(board)) } catch { /* storage unavailable: board still works for this session */ } }, [board])
   useEffect(() => { saveProjects(projects) }, [projects])
@@ -374,14 +386,20 @@ export default function App() {
     setShowAddProject(false)
   }
   function openProject(id: string) {
+    noteOpener()
     setSelectedId(null)
     setSelectedProjectId(id)
   }
   function openHackathon(id: string) {
+    noteOpener()
     setSelectedProjectId(null)
     setSelectedId(id)
   }
 
+  function openAdd() {
+    noteOpener()
+    setShowAdd(true)
+  }
   const selectedProject = projects.find((project) => project.id === selectedProjectId) ?? null
   const tabs = [
     { id: 'hackathons' as const, label: 'Departures', icon: <PlaneTakeoff size={15} aria-hidden="true" />, count: board.items.length },
@@ -400,7 +418,7 @@ export default function App() {
     </header>
     <main id="main" className="page">
       {tab === 'projects'
-        ? <PassesView projects={projects} hackathons={board.items} targetFilter={projectTarget} onTargetFilter={setProjectTarget} onOpenProject={setSelectedProjectId} onOpenHackathon={openHackathon} onAdd={() => setShowAddProject(true)} onReset={() => { setProjects(resetProjects()); setSelectedProjectId(null) }} />
+        ? <PassesView projects={projects} hackathons={board.items} targetFilter={projectTarget} onTargetFilter={setProjectTarget} onOpenProject={openProject} onOpenHackathon={openHackathon} onAdd={() => { noteOpener(); setShowAddProject(true) }} onReset={() => { setProjects(resetProjects()); setSelectedProjectId(null) }} />
         : <>
           <NextDeparture flight={nextFlight} onOpenProject={openProject} onOpenHackathon={openHackathon} />
           <section className="board" aria-labelledby="our-flights">
@@ -426,7 +444,7 @@ export default function App() {
           <section className="board" aria-labelledby="all-departures">
             <div className="board-head">
               <div><h2 id="all-departures">All departures</h2><p className="board-sub">{board.items.length} hackathons on the radar, soonest first.</p></div>
-              <div className="head-actions"><button type="button" className="button ghost" onClick={resetBoard}><RotateCcw size={15} aria-hidden="true" />Reset to seed</button><button type="button" className="button amber" onClick={() => setShowAdd(true)}><Plus size={16} aria-hidden="true" />Add hackathon</button></div>
+              <div className="head-actions"><button type="button" className="button ghost" onClick={resetBoard}><RotateCcw size={15} aria-hidden="true" />Reset to seed</button><button type="button" className="button amber" onClick={openAdd}><Plus size={16} aria-hidden="true" />Add hackathon</button></div>
             </div>
             <div className="toolbar" role="search">
               <label className="search-field"><Search size={15} aria-hidden="true" /><input aria-label="Search hackathons" placeholder="Search destinations" value={search} onChange={(event) => { setSearch(event.target.value); setLimit(PAGE) }} /></label>
@@ -447,7 +465,7 @@ export default function App() {
               <div className="fids-cols is-departure" aria-hidden="true"><span>Closes</span><span>Destination</span><span>Gate</span><span>Score</span><span>Remaining</span><span>Status</span></div>
               {visible.length
                 ? <ol className="fids-list">{visible.map((item, index) => <DepartureRow key={item.id} item={item} status={statuses.get(item.id) ?? 'scheduled'} gates={gatesFor(item.id)} index={index} onOpen={openHackathon} onOpenProject={openProject} />)}</ol>
-                : <div className="empty-state is-board"><Search size={24} aria-hidden="true" /><h3>No departures match</h3><p>{board.items.length ? 'Nothing on the board fits these filters.' : 'The board is empty. Add a hackathon to start.'}</p>{filtersOn ? <button type="button" className="button ghost" onClick={clearFilters}>Clear filters</button> : <button type="button" className="button amber" onClick={() => setShowAdd(true)}><Plus size={16} aria-hidden="true" />Add hackathon</button>}</div>}
+                : <div className="empty-state is-board"><Search size={24} aria-hidden="true" /><h3>No departures match</h3><p>{board.items.length ? 'Nothing on the board fits these filters.' : 'The board is empty. Add a hackathon to start.'}</p>{filtersOn ? <button type="button" className="button ghost" onClick={clearFilters}>Clear filters</button> : <button type="button" className="button amber" onClick={openAdd}><Plus size={16} aria-hidden="true" />Add hackathon</button>}</div>}
             </div>
             {filtered.length > visible.length && <button type="button" className="button ghost more" onClick={() => setLimit(limit + PAGE)}>Show {Math.min(PAGE, filtered.length - visible.length)} more departures<span className="muted"> ({filtered.length - visible.length} left)</span></button>}
           </section>
