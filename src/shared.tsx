@@ -3,12 +3,13 @@ import { deadlineMs, remaining, useMinute, useReducedMotion, zoneClock } from '.
 
 /**
  * One split-flap character. When the character changes, the old top leaf falls away and the
- * new bottom leaf lands (the page's one animation). On mount it flips in from blank, staggered
- * by `delay`. With reduced motion it renders the character statically.
+ * new bottom leaf lands (the page's one animation). On mount it flips once through its own
+ * character, staggered by `delay`, so the first frame (and a screenshot or a slow device) already
+ * shows the real digits, never a blank tile. With reduced motion it renders the character statically.
  */
 function Flap({ char, delay }: { char: string; delay: number }) {
   const reduced = useReducedMotion()
-  const [state, setState] = useState({ cur: char, prev: ' ', flips: 1 })
+  const [state, setState] = useState({ cur: char, prev: char, flips: 1 })
   if (state.cur !== char) setState({ cur: char, prev: state.cur, flips: state.flips + 1 })
   const { cur, prev, flips } = state
   return (
