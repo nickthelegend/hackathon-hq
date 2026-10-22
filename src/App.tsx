@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { ArrowUpRight, Check, ExternalLink, Info, PlaneTakeoff, Plus, RotateCcw, Search, TicketsPlane, X } from 'lucide-react'
 import seed from './data/hackathons.json'
-import { DeadlineClock, deadlineMs, FlapCountdown, formatDate, SplitFlap, useMinute, zoneClock } from './shared'
-import { AddProjectDialog, loadProjects, PassesView, ProjectDrawer, projectColumns, resetProjects, saveProjects, type Project } from './Projects'
+import { deadlineMs, formatDate, useMinute, zoneClock } from './board'
+import { DeadlineClock, FlapCountdown, SplitFlap } from './shared'
+import { AddProjectDialog, PassesView, ProjectDrawer } from './Projects'
+import { loadProjects, projectColumns, resetProjects, saveProjects, type Project } from './store'
 import { buildFlights, combineStatus, compareFlights, shortName, statusLabel, statusRule, type Flight, type FlightStatus } from './flights'
 import { StatusTag } from './StatusTag'
 

@@ -1,7 +1,7 @@
 // Departures-board view of the data. Nothing here is stored: every status, bundle head,
 // self-review score and missing key is derived from the seed text and the board state.
-import type { HackathonRef, Project } from './Projects'
-import { deadlineMs } from './shared'
+import type { HackathonRef, Project } from './store'
+import { deadlineMs } from './board'
 
 export type FlightStatus = 'boarding' | 'delayed' | 'ontime' | 'open' | 'scheduled' | 'closed' | 'departed' | 'cancelled'
 
