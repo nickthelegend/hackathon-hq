@@ -11,6 +11,19 @@ npm run dev
 
 `npm run build` type-checks and produces the production bundle. `npm run lint` runs ESLint.
 
+### Browser E2E (`e2e/`)
+
+Playwright in the installed Google Chrome, desktop 1280×800 and mobile 375×812, with video and traces, against the production build served by `vite preview` on 127.0.0.1:4180:
+
+```sh
+cd e2e && npm install
+npm run stack        # npm run build, then vite preview; PID in e2e/.run/pids
+npm run test:e2e     # 21 tests x 2 viewports (also: npm run test:e2e from the repo root)
+npm run stack:stop   # kills that PID
+```
+
+Expected values come from the seed files (`src/data/hackathons.json`, `src/data/projects.ts`) and the real clock, not from the app's own code. Every test fails on a console error or a failed same-origin request.
+
 ## Deployment
 
 The `main` branch deploys to [Hackathon HQ on GitHub Pages](https://nickthelegend.github.io/hackathon-hq/) through `.github/workflows/pages.yml`. Set the repository's Pages source to **GitHub Actions** to enable deployment.
