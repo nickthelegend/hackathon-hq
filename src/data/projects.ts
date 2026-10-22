@@ -9,7 +9,7 @@ export type ProjectStatus = 'idea' | 'building' | 'verified' | 'submitted'
 
 // Bump this and set `seedVersion` on a project to make its seed stage, progress, score and
 // next step override what a browser saved before that version.
-export const PROJECTS_SEED_VERSION = 24
+export const PROJECTS_SEED_VERSION = 25
 
 export type ProjectTarget = {
   hackathonId: string | null
@@ -93,14 +93,14 @@ export const projectSeed: ProjectSeed[] = [
     name: 'Kage (Shielded x402)',
     pitch: 'x402 pay-per-request for agents, settled privately over shielded Zcash.',
     targets: [zecathonEntry],
-    judgeScore: 8.5,
-    scoreNote: 'Demo tx cd64980a… (block 4521440) verified fully shielded, Ironwood-only. Self-review Oct 21 (our judge agents, not the verifier): 7.6 (before fixes); kage-redesign-v3 7995653, 75 tests',
+    judgeScore: 7.6,
+    scoreNote: 'Independent re-judge Oct 21: 7.6 (about 7.0 as GitHub serves 1e232bb). Ultra round Oct 22, main 610ef90: admin-port feed, X-PAYMENT budget, facilitator token, no redirects, sealed ledger, MCP resume, Tab key pinning, TS package; 117 tests; an LLM paid twice from the agent wallet (f037d597, b75b2415)',
     status: 'verified',
     progress: 90,
     repo: gh('zec-shielded-x402'),
-    nextStep: 'Nick pushes main (38 commits), then submits 6eca3dc by Oct 28 23:59 UTC; decide on the ~2 min video (v2 is 44 s, pre-x402 v1) and a demo URL (GitHub Pages for landing/)',
+    nextStep: 'Nick: enable Pages, push main (610ef90 or later, zec-shielded-x402-ultra.bundle), record a new ~2 min video, submit the tip of main by Oct 28 23:59 UTC; not x402-demo-v2.mp4',
     flag: 'Zecathon entry',
-    seedVersion: 24,
+    seedVersion: 25,
   },
   {
     id: 'private-payroll-rail',
