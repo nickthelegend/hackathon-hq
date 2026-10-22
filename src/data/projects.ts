@@ -9,7 +9,7 @@ export type ProjectStatus = 'idea' | 'building' | 'verified' | 'submitted'
 
 // Bump this and set `seedVersion` on a project to make its seed stage, progress, score and
 // next step override what a browser saved before that version.
-export const PROJECTS_SEED_VERSION = 25
+export const PROJECTS_SEED_VERSION = 26
 
 export type ProjectTarget = {
   hackathonId: string | null
@@ -62,18 +62,18 @@ export const projectSeed: ProjectSeed[] = [
   {
     id: 'tasteprobe',
     name: 'TasteProbe',
-    pitch: 'GEO audits with synthetic buyer personas from Qloo’s taste graph, across ChatGPT, Perplexity and Gemini.',
+    pitch: 'GEO audits with synthetic buyer personas from Qloo’s taste graph, across OpenAI plus any OpenAI-compatible assistant.',
     targets: [
       { hackathonId: 'qloo-agentic-hackathon-80', label: 'Qloo Agentic' },
       { hackathonId: 'nebius-x-nvidia-global-ai-hackathon-79', label: 'Nebius x NVIDIA' },
     ],
     judgeScore: null,
-    scoreNote: 'Self-review Oct 21 (our judge agents, not the verifier): 4.9 (before fixes). tasteprobe-judge-fixes d6829c2: Wilson + paired stats, placebo arm, place matching, keyless CLI that says Setup required; 50 tests',
+    scoreNote: 'Self-review Oct 21 (our judge agents, not the verifier): 4.9 (before fixes). Ultra round Oct 22 (f302aa5): strict venue match, spend guard fails closed in production, run deadline, agent budget fixes; 128 unit + 115 E2E tests',
     status: 'verified',
     progress: 70,
     repo: gh('tasteprobe'),
-    nextStep: 'BLOCKED: QLOO_API_KEY, NEBIUS_API_KEY, OPENAI_API_KEY for a real end-to-end audit (Nick). Verifier review of tasteprobe-judge-fixes.bundle (d6829c2); Qloo + Nebius x NVIDIA Oct 30',
-    seedVersion: 22,
+    nextStep: 'BLOCKED: QLOO_API_KEY, NEBIUS_API_KEY (plus OPENAI_API_KEY or a MODEL_2_* endpoint) for a real end-to-end audit (Nick). Verifier review of tasteprobe-ultra.bundle (f302aa5); Qloo + Nebius x NVIDIA Oct 30',
+    seedVersion: 26,
   },
   {
     id: 'leash',
