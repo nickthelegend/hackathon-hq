@@ -18,13 +18,15 @@ type Allowed = { url: RegExp; status: number };
 /**
  * Every test gets a `watch` that records console errors, page errors, failed same-origin requests and
  * same-origin HTTP errors, and asserts at the end that there were none. A test may `allow()` a status
- * on a URL, or `allowFailure()` a URL. No test in this suite uses either: nothing is excused.
+ * on a URL, `allowFailure()` a URL, or `allowConsoleError()` one console error it causes on purpose.
+ * Only the error-boundary test uses one (for the render error it throws itself); nothing else is excused.
  */
-export const test = base.extend<{ watch: { allow: (url: RegExp, status: number) => void; allowFailure: (url: RegExp) => void } }>({
+export const test = base.extend<{ watch: { allow: (url: RegExp, status: number) => void; allowFailure: (url: RegExp) => void; allowConsoleError: (text: RegExp) => void } }>({
   watch: [
     async ({ page }, use, testInfo) => {
       const allowed: Allowed[] = [];
       const mayFail: RegExp[] = [];
+      const mayLog: RegExp[] = [];
       const problems: string[] = [];
       const isAllowed = (url: string, status: number) => allowed.some((a) => a.status === status && a.url.test(url));
       const sameOrigin = (url: string) => {
@@ -41,6 +43,7 @@ export const test = base.extend<{ watch: { allow: (url: RegExp, status: number) 
         const st = /status of (\d{3})/.exec(m.text());
         if (st && isAllowed(loc, Number(st[1]))) return;
         if (/net::ERR_/.test(m.text()) && mayFail.some((r) => r.test(loc))) return;
+        if (mayLog.some((r) => r.test(m.text()))) return;
         problems.push(`console.error: ${m.text()} @ ${loc}`);
       });
       page.on('requestfailed', (r) => {
@@ -55,7 +58,7 @@ export const test = base.extend<{ watch: { allow: (url: RegExp, status: number) 
         if (isAllowed(r.url(), r.status())) return;
         problems.push(`HTTP ${r.status()}: ${r.request().method()} ${r.url()}`);
       });
-      await use({ allow: (url, status) => allowed.push({ url, status }), allowFailure: (url) => mayFail.push(url) });
+      await use({ allow: (url, status) => allowed.push({ url, status }), allowFailure: (url) => mayFail.push(url), allowConsoleError: (text) => mayLog.push(text) });
       if (problems.length) await testInfo.attach('problems', { body: problems.join('\n') });
       expect(problems, 'console errors / failed same-origin requests').toEqual([]);
     },
