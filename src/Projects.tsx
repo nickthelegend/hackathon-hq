@@ -1,7 +1,7 @@
 import { useMemo, useState, type FormEvent } from 'react'
 import { ArrowUpRight, ExternalLink, KeyRound, PlaneTakeoff, Plus, RotateCcw, Search, TicketsPlane, X } from 'lucide-react'
 import { type ProjectStatus } from './data/projects'
-import { deadlineMs, formatDate, useMinute } from './board'
+import { deadlineMs, formatDate, safeHttpsUrl, useMinute } from './board'
 import { DeadlineClock, FlapCountdown } from './shared'
 import { aka, blockedText, buildFlights, bundleHead, compareFlights, missingKeys, selfReview, shortName, type Flight } from './flights'
 import { passStatus, projectColumns, resolveTargets, type HackathonRef, type Project } from './store'
@@ -42,6 +42,7 @@ function BoardingPass({ project, flights, onOpen, onOpenHackathon }: { project: 
   const stage = projectColumns.find((column) => column.id === project.status)?.title ?? project.status
   const workingName = aka(project.name)
   const name = shortName(project.name)
+  const repo = safeHttpsUrl(project.repo)
   return (
     <article className={`pass ${status ? `pass-${status}` : ''}`} aria-labelledby={`pass-${project.id}`}>
       <div className="pass-main">
@@ -75,7 +76,7 @@ function BoardingPass({ project, flights, onOpen, onOpenHackathon }: { project: 
           {bundle || head ? <><span className="stub-bundle">{bundle ?? 'no bundle named'}</span><strong className="stub-head">{head ?? '—'}</strong></> : <span className="stub-bundle">None named</span>}
         </div>
         {project.flag && <div className="stub-field"><span className="pass-label">Flag</span><span className="stub-flag">{project.flag}</span></div>}
-        {project.repo && <a className="stub-repo" href={project.repo} target="_blank" rel="noreferrer">Repository<ExternalLink size={12} aria-hidden="true" /><span className="sr-only"> for {name} (opens in a new tab)</span></a>}
+        {repo && <a className="stub-repo" href={repo} target="_blank" rel="noreferrer">Repository<ExternalLink size={12} aria-hidden="true" /><span className="sr-only"> for {name} (opens in a new tab)</span></a>}
         <Barcode seed={head ?? project.id} />
       </div>
     </article>
@@ -164,6 +165,23 @@ export function PassesView({ projects, hackathons, targetFilter, onTargetFilter,
   </>
 }
 
+/** Saves only an https:// link (or a cleared field); anything else shows an inline error and keeps the last valid link. */
+function RepoField({ value, onSave }: { value: string | null; onSave: (repo: string | null) => void }) {
+  const [draft, setDraft] = useState(value ?? '')
+  const trimmed = draft.trim()
+  const invalid = trimmed !== '' && !safeHttpsUrl(trimmed)
+  const saved = safeHttpsUrl(value)
+  return <>
+    <label className="field">GitHub repo<input type="url" value={draft} placeholder="https://github.com/…" aria-invalid={invalid} aria-describedby={invalid ? 'repo-error' : undefined} onChange={(event) => {
+      setDraft(event.target.value)
+      const next = event.target.value.trim()
+      if (!next) onSave(null)
+      else if (safeHttpsUrl(next)) onSave(next)
+    }} />{invalid && <span className="field-error" id="repo-error">The link must start with https:// — {saved ? 'the last valid link is kept' : 'nothing is saved until it does'}.</span>}</label>
+    {saved && <a className="out-link" href={saved} target="_blank" rel="noreferrer">Open repository <ExternalLink size={14} aria-hidden="true" /></a>}
+  </>
+}
+
 export function ProjectDrawer({ project, hackathons, onClose, onUpdate, onOpenHackathon }: { project: Project; hackathons: HackathonRef[]; onClose: () => void; onUpdate: (id: string, patch: Partial<Project>) => void; onOpenHackathon: (id: string) => void }) {
   const now = useMinute()
   const flights = buildFlights([project], new Map(hackathons.map((item) => [item.id, item])), now).sort(compareFlights)
@@ -189,8 +207,7 @@ export function ProjectDrawer({ project, hackathons, onClose, onUpdate, onOpenHa
             <input className="range" type="range" min="0" max="100" step="5" value={project.progress} aria-label="Progress percent" style={{ ['--value' as string]: `${project.progress}%` }} onChange={(event) => onUpdate(project.id, { progress: Number(event.target.value) })} />
           </section>
           <label className="field">Next step<textarea rows={3} value={project.nextStep} placeholder="What unblocks this?" onChange={(event) => onUpdate(project.id, { nextStep: event.target.value })} /></label>
-          <label className="field">GitHub repo<input type="url" value={project.repo ?? ''} placeholder="https://github.com/…" onChange={(event) => onUpdate(project.id, { repo: event.target.value.trim() || null })} /></label>
-          {project.repo?.startsWith('https://') && <a className="out-link" href={project.repo} target="_blank" rel="noreferrer">Open repository <ExternalLink size={14} aria-hidden="true" /></a>}
+          <RepoField key={project.id} value={project.repo} onSave={(repo) => onUpdate(project.id, { repo })} />
           <label className="field">Notes<textarea className="notes" value={project.notes} onChange={(event) => onUpdate(project.id, { notes: event.target.value })} placeholder="Links, judge feedback, anything worth remembering" /></label>
         </div>
       </aside>
@@ -212,7 +229,7 @@ export function AddProjectDialog({ hackathons, onClose, onAdd }: { hackathons: H
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const repo = form.repo.trim()
-    if (repo && !repo.startsWith('https://')) { setError('Repo link must start with https://'); return }
+    if (repo && !safeHttpsUrl(repo)) { setError('Repo link must start with https://'); return }
     const hackathon = hackathons.find((item) => item.id === form.hackathonId)
     onAdd({
       id: `custom-${crypto.randomUUID()}`,

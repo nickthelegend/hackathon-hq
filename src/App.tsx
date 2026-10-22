@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { ArrowUpRight, Check, ExternalLink, Info, PlaneTakeoff, Plus, RotateCcw, Search, TicketsPlane, X } from 'lucide-react'
-import { deadlineMs, formatDate, useMinute, zoneClock } from './board'
+import { deadlineMs, formatDate, safeHttpsUrl, useMinute, zoneClock } from './board'
 import { DeadlineClock, FlapCountdown, SplitFlap } from './shared'
 import { AddProjectDialog, PassesView, ProjectDrawer } from './Projects'
 import { BOARD_KEY, checklistLabels, columns, ideaNames, loadBoard, loadProjects, patchHackathon, PROJECTS_KEY, projectColumns, resetProjects, saveBoard, saveProjects, starterItems, type ColumnId, type EventFormat, type Hackathon, type Project, type Track } from './store'
@@ -118,6 +118,7 @@ function DepartureRow({ item, status, gates, index, onOpen, onOpenProject }: { i
 
 function DetailDrawer({ item, status, gates, flights, onClose, onUpdate, onOpenProject }: { item: Hackathon; status: FlightStatus; gates: Project[]; flights: Flight[]; onClose: () => void; onUpdate: (id: string, patch: Partial<Hackathon>) => void; onOpenProject: (id: string) => void }) {
   const completed = item.checklist.filter(Boolean).length
+  const eventUrl = safeHttpsUrl(item.url)
   return (
     <>
       <button type="button" className="drawer-backdrop" aria-label="Close details" onClick={onClose} />
@@ -136,7 +137,9 @@ function DetailDrawer({ item, status, gates, flights, onClose, onUpdate, onOpenP
             <div><dt>Dates</dt><dd>{item.startDate ? `${formatDate(item.startDate)} – ${item.rolling ? 'Rolling' : formatDate(item.deadline)}` : item.rolling ? 'Rolling' : `Deadline ${formatDate(item.deadline)}`}</dd></div>
           </dl>
           {item.description && <p className="note-text">{item.description}</p>}
-          <a className="out-link" href={item.url} target="_blank" rel="noreferrer">Open official page <ExternalLink size={14} aria-hidden="true" /></a>
+          {eventUrl
+            ? <a className="out-link" href={eventUrl} target="_blank" rel="noreferrer">Open official page <ExternalLink size={14} aria-hidden="true" /></a>
+            : <p className="muted small">No https event link saved for this hackathon.</p>}
           <section className="drawer-section"><h3>Gates <span className="muted">{gates.length}</span></h3>
             {gates.length
               ? <ul className="gate-rows">{gates.map((project) => {
@@ -171,7 +174,7 @@ function AddHackathonDialog({ onClose, onAdd }: { onClose: () => void; onAdd: (i
   const change = (field: keyof typeof form, value: string) => setForm((current) => ({ ...current, [field]: value }))
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (!form.url.startsWith('https://')) { setError('Enter a secure https:// event link.'); return }
+    if (!safeHttpsUrl(form.url)) { setError('Enter a secure https:// event link.'); return }
     const location = form.mode.trim() && form.mode.trim().toLowerCase() !== 'online' ? form.mode.trim() : null
     onAdd({ id: `custom-${crypto.randomUUID()}`, name: form.name.trim(), organizer: form.organizer.trim(), track: form.track, prize: form.prizeAmount ? `${form.currency} ${Number(form.prizeAmount).toLocaleString('en-US')}` : 'TBA', startDate: form.startDate || null, deadline: form.deadline || null, rolling: false, format: location ? 'in-person' : 'online', location, country: null, url: form.url.trim(), source: 'manual', description: null, free: null, judgeScore: null, judgeIdea: null })
   }
