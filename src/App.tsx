@@ -1,103 +1,21 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { ArrowUpRight, Check, ExternalLink, Info, PlaneTakeoff, Plus, RotateCcw, Search, TicketsPlane, X } from 'lucide-react'
-import seed from './data/hackathons.json'
 import { deadlineMs, formatDate, useMinute, zoneClock } from './board'
 import { DeadlineClock, FlapCountdown, SplitFlap } from './shared'
 import { AddProjectDialog, PassesView, ProjectDrawer } from './Projects'
-import { loadProjects, projectColumns, resetProjects, saveProjects, type Project } from './store'
+import { checklistLabels, columns, ideaNames, loadBoard, loadProjects, patchHackathon, projectColumns, resetProjects, saveBoard, saveProjects, starterItems, type ColumnId, type EventFormat, type Hackathon, type Project, type Track } from './store'
 import { buildFlights, combineStatus, compareFlights, shortName, statusLabel, statusRule, type Flight, type FlightStatus } from './flights'
 import { StatusTag } from './StatusTag'
 
-const columns = [
-  { id: 'discovered', title: 'Discovered' },
-  { id: 'shortlisted', title: 'Shortlisted' },
-  { id: 'approved', title: 'Approved by Judge' },
-  { id: 'building', title: 'Building' },
-  { id: 'submitted', title: 'Submitted' },
-  { id: 'results', title: 'Results' },
-] as const
-
-const checklistLabels = ['Idea', 'Repo', 'MVP', 'Demo video', 'Deck', 'Submission']
-type ColumnId = (typeof columns)[number]['id']
-
-function boardStatus(status: string): ColumnId {
-  if (status === 'Backlog') return 'discovered'
-  return columns.find((column) => column.id === status)?.id ?? 'discovered'
-}
-
-type Track = 'web3' | 'ai' | 'both'
-type EventFormat = 'online' | 'in-person' | 'hybrid'
-type Hackathon = {
-  id: string
-  name: string
-  organizer: string
-  track: Track
-  prize: string
-  startDate: string | null
-  deadline: string | null
-  rolling: boolean
-  format: EventFormat
-  location: string | null
-  country: string | null
-  url: string
-  source: string
-  description: string | null
-  free: boolean | null
-  judgeScore: number | null
-  judgeIdea: string | null
-  status: ColumnId
-  notes: string
-  checklist: boolean[]
-}
-type BoardState = { items: Hackathon[] }
-
-const STORAGE_KEY = 'hackathon-hq-board-v3'
 const TAB_KEY = 'hackathon-hq-tab'
 type Tab = 'hackathons' | 'projects'
+type BoardState = { items: Hackathon[] }
 const PAGE = 30
 
 function loadTab(): Tab {
   if (window.location.hash === '#projects') return 'projects'
   if (window.location.hash === '#hackathons') return 'hackathons'
   try { return localStorage.getItem(TAB_KEY) === 'projects' ? 'projects' : 'hackathons' } catch { return 'hackathons' }
-}
-const ideaNames = [...new Set(seed.map((item) => item.judgeIdea).filter((idea): idea is string => Boolean(idea)))].sort()
-const starterItems = seed.map((item) => ({ ...item, status: boardStatus(item.status), rolling: item.rolling ?? false, judgeScore: item.judgeScore ?? null, judgeIdea: item.judgeIdea ?? null, prize: item.prize || 'TBA', free: item.free ?? null, notes: '', checklist: checklistLabels.map(() => false) })) as Hackathon[]
-
-function loadBoard(): BoardState {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY)
-    if (!saved) return { items: starterItems }
-    const parsed = JSON.parse(saved) as BoardState
-    if (!Array.isArray(parsed.items)) return { items: starterItems }
-    // Seed data (hackathons.json) is the source of truth for event facts; only the
-    // user's own board state (status, notes, checklist, score edits) and custom cards
-    // are restored from storage, so updated or newly added hackathons always show up.
-    const savedById = new Map(parsed.items.map((item) => [item.id, item]))
-    const seedIds = new Set(starterItems.map((item) => item.id))
-    const merged = [
-      ...starterItems.map((item) => {
-        const saved = savedById.get(item.id)
-        return saved ? { ...item, status: saved.status, notes: saved.notes, checklist: saved.checklist, judgeScore: saved.judgeScore } : item
-      }),
-      ...parsed.items.filter((item) => !seedIds.has(item.id)),
-    ]
-    return {
-      items: merged.map((item) => ({
-        ...item,
-        status: boardStatus(item.status),
-        rolling: Boolean(item.rolling),
-        judgeScore: typeof item.judgeScore === 'number' ? item.judgeScore : null,
-        judgeIdea: typeof item.judgeIdea === 'string' ? item.judgeIdea : null,
-        prize: typeof item.prize === 'string' && item.prize.trim() ? item.prize : 'TBA',
-        free: typeof item.free === 'boolean' ? item.free : null,
-        notes: typeof item.notes === 'string' ? item.notes : '',
-        checklist: checklistLabels.map((_, index) => Boolean(item.checklist?.[index])),
-      })),
-    }
-  } catch {
-    return { items: starterItems }
-  }
 }
 
 function formatLabel(format: EventFormat): string {
@@ -265,7 +183,7 @@ function AddHackathonDialog({ onClose, onAdd }: { onClose: () => void; onAdd: (i
 }
 
 export default function App() {
-  const [board, setBoard] = useState<BoardState>(loadBoard)
+  const [board, setBoard] = useState<BoardState>(() => ({ items: loadBoard() }))
   const [search, setSearch] = useState('')
   const [trackFilter, setTrackFilter] = useState<'all' | 'web3' | 'ai'>('all')
   const [formatFilter, setFormatFilter] = useState<'all' | EventFormat>('all')
@@ -297,7 +215,7 @@ export default function App() {
     if (element?.isConnected) element.focus()
   }, [overlayOpen])
 
-  useEffect(() => { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(board)) } catch { /* storage unavailable: board still works for this session */ } }, [board])
+  useEffect(() => { saveBoard(board.items) }, [board])
   useEffect(() => { saveProjects(projects) }, [projects])
   useEffect(() => { try { localStorage.setItem(TAB_KEY, tab) } catch { /* tab memory is a convenience */ } }, [tab])
   useEffect(() => {
@@ -372,10 +290,10 @@ export default function App() {
   const selected = board.items.find((item) => item.id === selectedId) ?? null
 
   function updateItem(id: string, patch: Partial<Hackathon>) {
-    setBoard((current) => ({ items: current.items.map((item) => item.id === id ? { ...item, ...patch } : item) }))
+    setBoard((current) => ({ items: current.items.map((item) => item.id === id ? patchHackathon(item, patch) : item) }))
   }
   function addItem(input: Omit<Hackathon, 'status' | 'notes' | 'checklist'>) {
-    setBoard((current) => ({ items: [{ ...input, status: 'discovered', notes: '', checklist: checklistLabels.map(() => false) }, ...current.items] }))
+    setBoard((current) => ({ items: [{ ...input, status: 'discovered', notes: '', checklist: checklistLabels.map(() => false), edited: [] }, ...current.items] }))
     setShowAdd(false)
   }
   function resetBoard() {

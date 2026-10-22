@@ -1,4 +1,4 @@
-// Shared non-component helpers: time and formatting. Kept out of the
+// Shared non-component helpers: time, formatting and link safety. Kept out of the
 // .tsx files so each of those exports only components (React fast refresh needs that).
 import { useSyncExternalStore } from 'react'
 
@@ -61,4 +61,17 @@ export function remaining(end: number, now: number): { days: string; hours: stri
   const hours = Math.floor((totalMinutes % 1440) / 60)
   const minutes = totalMinutes % 60
   return { days: pad(days), hours: pad(hours), minutes: pad(minutes), spoken: `${days} days ${hours} hours ${minutes} minutes left` }
+}
+
+/** The value itself when it is an absolute https:// URL, else null. Every rendered href goes through this. */
+export function safeHttpsUrl(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+  const trimmed = value.trim()
+  if (!trimmed) return null
+  try {
+    const url = new URL(trimmed)
+    return url.protocol === 'https:' && url.hostname ? trimmed : null
+  } catch {
+    return null
+  }
 }
