@@ -16,6 +16,7 @@ CI (`.github/workflows/ci.yml`) runs the same lint and E2E commands on every pul
 
 - `e2e/stack.sh` builds the production bundle and serves it with `vite preview` on 127.0.0.1:4180 (the same `dist/` GitHub Pages serves); `stack.sh stop` kills that PID.
 - Real Google Chrome (`channel: 'chrome'`; `PW_CHANNEL` picks another), timezone Asia/Kolkata, video, trace and screenshot on.
+- `HQ_E2E_BASE=https://hackathon-hq-board.vercel.app/ npm run test:e2e` (in `e2e/`) runs the same suite against the deployed board instead of the local preview; no stack needed. On 2026-10-24 it passed 64/64 that way.
 - Expected values come from the seed files and the real clock, never from the app's code.
 - Every test fails on a console error, a page error or a failed same-origin request. One test excuses one console error: the error-boundary test, for the error it throws on purpose.
 - No mocks: there is nothing external to mock.
