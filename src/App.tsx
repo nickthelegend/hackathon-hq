@@ -100,9 +100,9 @@ function FlightRow({ flight, index, onOpenProject, onOpenHackathon }: { flight: 
   )
 }
 
-function DepartureRow({ item, status, gates, index, onOpen, onOpenProject }: { item: Hackathon; status: FlightStatus; gates: Project[]; index: number; onOpen: (id: string) => void; onOpenProject: (id: string) => void }) {
+function DepartureRow({ item, status, gates, index, isNew, onOpen, onOpenProject }: { item: Hackathon; status: FlightStatus; gates: Project[]; index: number; isNew: boolean; onOpen: (id: string) => void; onOpenProject: (id: string) => void }) {
   return (
-    <li className={`fids-row is-departure row-${status}`}>
+    <li className={`fids-row is-departure row-${status} ${isNew ? 'is-new' : ''}`} data-row-id={item.id}>
       <div className="c-time"><DeadlineClock deadline={item.deadline} rolling={item.rolling} /></div>
       <div className="c-dest">
         <button type="button" className="row-link" onClick={() => onOpen(item.id)}>{item.name}</button>
@@ -173,17 +173,22 @@ function DetailDrawer({ item, status, gates, flights, onClose, onUpdate, onOpenP
 function AddHackathonDialog({ onClose, onAdd }: { onClose: () => void; onAdd: (item: Omit<Hackathon, 'status' | 'notes' | 'checklist'>) => void }) {
   const [form, setForm] = useState({ name: '', organizer: '', track: 'ai' as Track, prizeAmount: '', currency: 'USD', startDate: '', deadline: '', mode: 'Online', url: '' })
   const [error, setError] = useState('')
+  const [missing, setMissing] = useState<{ name?: boolean; organizer?: boolean }>({})
   const change = (field: keyof typeof form, value: string) => setForm((current) => ({ ...current, [field]: value }))
   const panel = useRef<HTMLFormElement>(null)
   useFocusTrap(panel)
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    // `required` lets a name of spaces through; trimmed-empty names and organizers are refused here.
+    const blank = { name: !form.name.trim(), organizer: !form.organizer.trim() }
+    setMissing(blank)
+    if (blank.name || blank.organizer) { setError(''); panel.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus(); return }
     if (!safeHttpsUrl(form.url)) { setError('Enter a secure https:// event link.'); return }
     const location = form.mode.trim() && form.mode.trim().toLowerCase() !== 'online' ? form.mode.trim() : null
     onAdd({ id: `custom-${crypto.randomUUID()}`, name: form.name.trim(), organizer: form.organizer.trim(), track: form.track, prize: form.prizeAmount ? `${form.currency} ${Number(form.prizeAmount).toLocaleString('en-US')}` : 'TBA', startDate: form.startDate || null, deadline: form.deadline || null, rolling: false, format: location ? 'in-person' : 'online', location, country: null, url: form.url.trim(), source: 'manual', description: null, free: null, judgeScore: null, judgeIdea: null })
   }
   return <div className="modal-layer" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}><form ref={panel} className="dialog" role="dialog" aria-modal="true" aria-labelledby="add-hackathon-title" onSubmit={submit}><div className="dialog-head"><div><p className="eyebrow">New departure</p><h2 id="add-hackathon-title">Add a hackathon</h2></div><button className="icon-button" type="button" onClick={onClose} aria-label="Close"><X size={18} /></button></div>
-    <div className="form-grid"><label className="field full">Hackathon name<input required autoFocus value={form.name} onChange={(event) => change('name', event.target.value)} placeholder="e.g. ETHGlobal Mumbai" /></label><label className="field">Organizer / platform<input required value={form.organizer} onChange={(event) => change('organizer', event.target.value)} placeholder="e.g. ETHGlobal" /></label><label className="field">Track<select value={form.track} onChange={(event) => change('track', event.target.value)}><option value="web3">Web3</option><option value="ai">AI</option><option value="both">Web3 + AI</option></select></label>
+    <div className="form-grid"><label className="field full">Hackathon name<input required autoFocus value={form.name} aria-invalid={Boolean(missing.name)} aria-describedby={missing.name ? 'add-name-error' : undefined} onChange={(event) => change('name', event.target.value)} placeholder="e.g. ETHGlobal Mumbai" />{missing.name && <span className="field-error" id="add-name-error" aria-hidden="true">Enter the hackathon name.</span>}</label><label className="field">Organizer / platform<input required value={form.organizer} aria-invalid={Boolean(missing.organizer)} aria-describedby={missing.organizer ? 'add-organizer-error' : undefined} onChange={(event) => change('organizer', event.target.value)} placeholder="e.g. ETHGlobal" />{missing.organizer && <span className="field-error" id="add-organizer-error" aria-hidden="true">Enter the organizer or platform.</span>}</label><label className="field">Track<select value={form.track} onChange={(event) => change('track', event.target.value)}><option value="web3">Web3</option><option value="ai">AI</option><option value="both">Web3 + AI</option></select></label>
       <label className="field">Prize pool<input type="number" min="0" value={form.prizeAmount} onChange={(event) => change('prizeAmount', event.target.value)} placeholder="Optional" /></label><label className="field">Currency<select value={form.currency} onChange={(event) => change('currency', event.target.value)}><option>USD</option><option>INR</option><option>EUR</option><option>CAD</option><option>GBP</option></select></label>
       <label className="field">Start date<input type="date" value={form.startDate} onChange={(event) => change('startDate', event.target.value)} /></label><label className="field">End / deadline<input type="date" value={form.deadline} onChange={(event) => change('deadline', event.target.value)} /></label><label className="field">Mode or location<input value={form.mode} onChange={(event) => change('mode', event.target.value)} placeholder="Online or city" /></label><label className="field full">Official event link<input required type="url" value={form.url} onChange={(event) => change('url', event.target.value)} placeholder="https://" /></label></div>
     {error && <p className="form-error" role="alert">{error}</p>}<div className="dialog-actions"><button type="button" className="button ghost" onClick={onClose}>Cancel</button><button className="button amber" type="submit"><Plus size={16} aria-hidden="true" />Add to departures</button></div></form></div>
@@ -209,6 +214,9 @@ export default function App() {
   const [showAddProject, setShowAddProject] = useState(false)
   const [projectTarget, setProjectTarget] = useState('all')
   const [confirmReset, setConfirmReset] = useState<Tab | null>(null)
+  const [revealId, setRevealId] = useState<string | null>(null)
+  const [newId, setNewId] = useState<string | null>(null)
+  const [announcement, setAnnouncement] = useState('')
   const now = useMinute()
   // The control that opened the first drawer or dialog gets focus back when they have all closed.
   const opener = useRef<HTMLElement | null>(null)
@@ -319,13 +327,34 @@ export default function App() {
     setSearch(''); setTrackFilter('all'); setFormatFilter('all'); setSourceFilter('all'); setIdeaFilter('all'); setStageFilter('all'); setStatusFilter('all'); setLimit(PAGE)
   }
   const selected = board.items.find((item) => item.id === selectedId) ?? null
+  useEffect(() => {
+    if (!revealId) return
+    const index = filtered.findIndex((item) => item.id === revealId)
+    if (index < 0) return
+    if (index >= limit) { setLimit(Math.ceil((index + 1) / PAGE) * PAGE); return }
+    const link = document.querySelector<HTMLElement>(`[data-row-id="${CSS.escape(revealId)}"] .row-link`)
+    if (!link) return
+    opener.current = link // closing the new card's drawer lands on its row
+    link.scrollIntoView({ block: 'center' })
+    setRevealId(null)
+  }, [revealId, filtered, limit])
 
   function updateItem(id: string, patch: Partial<Hackathon>) {
     setBoard((current) => ({ items: current.items.map((item) => item.id === id ? patchHackathon(item, patch) : item) }))
   }
+  // A new card is never left off-screen: filters clear, closed rows show if it has already closed,
+  // its drawer opens, the list pages far enough to hold its row, and the addition is announced.
   function addItem(input: Omit<Hackathon, 'status' | 'notes' | 'checklist'>) {
-    setBoard((current) => ({ items: [{ ...input, status: 'discovered', notes: '', checklist: checklistLabels.map(() => false), edited: [] }, ...current.items] }))
+    const item: Hackathon = { ...input, status: 'discovered', notes: '', checklist: checklistLabels.map(() => false), edited: [] }
+    setBoard((current) => ({ items: [item, ...current.items] }))
+    clearFilters()
+    const end = item.rolling ? null : deadlineMs(item.deadline)
+    if (end !== null && end <= Date.now()) setShowClosed(true)
     setShowAdd(false)
+    setSelectedId(item.id)
+    setRevealId(item.id)
+    setNewId(item.id)
+    setAnnouncement(`Added ${item.name} to departures`)
   }
   function askReset(which: Tab) {
     noteOpener()
@@ -369,6 +398,7 @@ export default function App() {
 
   return <div className="app">
     <a ref={skipRef} className="skip-link" href="#main">Skip to board</a>
+    <p className="sr-only" role="status">{announcement}</p>
     <header ref={topbarRef} className="topbar">
       <div className="brand" aria-label="Hackathon HQ"><span className="brand-mark" aria-hidden="true">HQ</span><span className="brand-word">Hackathon HQ<small>Departures · Nick's team</small></span></div>
       <nav className="tabs" aria-label="Boards">{tabs.map((item) => <a key={item.id} href={`#${item.id}`} className="tab" aria-current={tab === item.id ? 'page' : undefined} onClick={() => setTab(item.id)}>{item.icon}<span>{item.label}</span><span className="tab-count">{item.count}</span></a>)}</nav>
@@ -422,7 +452,7 @@ export default function App() {
             <div className="fids" role="region" aria-label="All departures board">
               <div className="fids-cols is-departure" aria-hidden="true"><span>Closes</span><span>Destination</span><span>Gate</span><span>Score</span><span>Remaining</span><span>Status</span></div>
               {visible.length
-                ? <ol className="fids-list">{visible.map((item, index) => <DepartureRow key={item.id} item={item} status={statuses.get(item.id) ?? 'scheduled'} gates={gatesFor(item.id)} index={index} onOpen={openHackathon} onOpenProject={openProject} />)}</ol>
+                ? <ol className="fids-list">{visible.map((item, index) => <DepartureRow key={item.id} item={item} status={statuses.get(item.id) ?? 'scheduled'} gates={gatesFor(item.id)} index={index} isNew={item.id === newId} onOpen={openHackathon} onOpenProject={openProject} />)}</ol>
                 : <div className="empty-state is-board"><Search size={24} aria-hidden="true" /><h3>No departures match</h3><p>{board.items.length ? 'Nothing on the board fits these filters.' : 'The board is empty. Add a hackathon to start.'}</p>{filtersOn ? <button type="button" className="button ghost" onClick={clearFilters}>Clear filters</button> : <button type="button" className="button amber" onClick={openAdd}><Plus size={16} aria-hidden="true" />Add hackathon</button>}</div>}
             </div>
             {filtered.length > visible.length && <button type="button" className="button ghost more" onClick={() => setLimit(limit + PAGE)}>Show {Math.min(PAGE, filtered.length - visible.length)} more departures<span className="muted"> ({filtered.length - visible.length} left)</span></button>}

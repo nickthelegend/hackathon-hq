@@ -274,7 +274,7 @@ test.describe('departures board', () => {
     await expect(page.getByRole('dialog').locator('.eyebrow')).toHaveText('Pass details');
   });
 
-  test('Add hackathon: https is required; a valid entry lands on the board', async ({ page }) => {
+  test('Add hackathon: https is required; a valid entry lands on the board, visible without searching', async ({ page }) => {
     await page.goto(BASE);
     await page.getByRole('button', { name: 'Add hackathon' }).first().click();
     const dlg = page.getByRole('dialog', { name: 'Add a hackathon' });
@@ -288,8 +288,13 @@ test.describe('departures board', () => {
     await dlg.getByLabel('End / deadline').fill('2026-12-31');
     await dlg.getByRole('button', { name: 'Add to departures' }).click();
     await expect(dlg).toBeHidden();
-    await page.getByLabel('Search hackathons').fill('E2E Test Hack');
-    await expect(departures(page)).toHaveCount(1);
+    // Its drawer opens; closing it lands on the new row, already on screen, no search needed.
+    await expect(page.getByRole('dialog', { name: 'E2E Test Hack details' })).toBeVisible();
+    await page.keyboard.press('Escape');
+    const added = departures(page).filter({ hasText: 'E2E Test Hack' });
+    await expect(added).toHaveCount(1);
+    await expect(added).toBeInViewport();
+    await expect(added.locator('.row-link')).toBeFocused();
     await expect(page.locator('.tab', { hasText: 'Departures' })).toContainText(String(seed.length + 1));
     await page.getByRole('button', { name: 'Add hackathon' }).first().click();
     await page.keyboard.press('Escape');

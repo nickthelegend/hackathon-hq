@@ -182,7 +182,7 @@ function RepoField({ value, onSave }: { value: string | null; onSave: (repo: str
       const next = event.target.value.trim()
       if (!next) onSave(null)
       else if (safeHttpsUrl(next)) onSave(next)
-    }} />{invalid && <span className="field-error" id="repo-error">The link must start with https:// — {saved ? 'the last valid link is kept' : 'nothing is saved until it does'}.</span>}</label>
+    }} />{invalid && <span className="field-error" id="repo-error" aria-hidden="true">The link must start with https:// — {saved ? 'the last valid link is kept' : 'nothing is saved until it does'}.</span>}</label>
     {saved && <a className="out-link" href={saved} target="_blank" rel="noreferrer">Open repository <ExternalLink size={14} aria-hidden="true" /></a>}
   </>
 }
@@ -225,6 +225,7 @@ export function ProjectDrawer({ project, hackathons, onClose, onUpdate, onOpenHa
 export function AddProjectDialog({ hackathons, onClose, onAdd }: { hackathons: HackathonRef[]; onClose: () => void; onAdd: (project: Project) => void }) {
   const [form, setForm] = useState({ name: '', pitch: '', hackathonId: '', status: 'idea' as ProjectStatus, repo: '', score: '', nextStep: '' })
   const [error, setError] = useState('')
+  const [nameMissing, setNameMissing] = useState(false)
   const change = (field: keyof typeof form, value: string) => setForm((current) => ({ ...current, [field]: value }))
   const panel = useRef<HTMLFormElement>(null)
   useFocusTrap(panel)
@@ -238,6 +239,8 @@ export function AddProjectDialog({ hackathons, onClose, onAdd }: { hackathons: H
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const repo = form.repo.trim()
+    setNameMissing(!form.name.trim())
+    if (!form.name.trim()) { setError(''); panel.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus(); return }
     if (repo && !safeHttpsUrl(repo)) { setError('Repo link must start with https://'); return }
     const hackathon = hackathons.find((item) => item.id === form.hackathonId)
     onAdd({
@@ -255,7 +258,7 @@ export function AddProjectDialog({ hackathons, onClose, onAdd }: { hackathons: H
   }
   return <div className="modal-layer" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}><form ref={panel} className="dialog" role="dialog" aria-modal="true" aria-labelledby="add-project-title" onSubmit={submit}><div className="dialog-head"><div><p className="eyebrow">New pass</p><h2 id="add-project-title">Add a project</h2></div><button className="icon-button" type="button" onClick={onClose} aria-label="Close"><X size={18} /></button></div>
     <div className="form-grid">
-      <label className="field full">Project name<input required autoFocus value={form.name} onChange={(event) => change('name', event.target.value)} placeholder="e.g. Blackbox Receipts" /></label>
+      <label className="field full">Project name<input required autoFocus value={form.name} aria-invalid={nameMissing} aria-describedby={nameMissing ? 'add-project-name-error' : undefined} onChange={(event) => change('name', event.target.value)} placeholder="e.g. Blackbox Receipts" />{nameMissing && <span className="field-error" id="add-project-name-error" aria-hidden="true">Enter the project name.</span>}</label>
       <label className="field full">One-line pitch<input value={form.pitch} onChange={(event) => change('pitch', event.target.value)} placeholder="What it does, in one breath" /></label>
       <label className="field full">Destination<select value={form.hackathonId} onChange={(event) => change('hackathonId', event.target.value)}><option value="">None / internal</option>{options.map((item) => <option key={item.id} value={item.id}>{item.name}{item.deadline ? ` · ${formatDate(item.deadline)}` : ''}</option>)}</select></label>
       <label className="field">Stage<select value={form.status} onChange={(event) => change('status', event.target.value)}>{projectColumns.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}</select></label>
