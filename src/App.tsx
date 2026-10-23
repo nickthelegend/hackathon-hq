@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { ArrowUpRight, Check, ExternalLink, Info, PlaneTakeoff, Plus, RotateCcw, Search, TicketsPlane, X } from 'lucide-react'
-import { deadlineMs, formatDate, safeHttpsUrl, useMinute, zoneClock } from './board'
+import { deadlineMs, formatDate, safeHttpsUrl, useFocusTrap, useMinute, zoneClock } from './board'
 import { DeadlineClock, FlapCountdown, SplitFlap } from './shared'
 import { AddProjectDialog, PassesView, ProjectDrawer } from './Projects'
 import { BOARD_KEY, checklistLabels, columns, ideaNames, loadBoard, loadProjects, patchHackathon, PROJECTS_KEY, projectColumns, resetProjects, saveBoard, saveProjects, starterItems, type ColumnId, type EventFormat, type Hackathon, type Project, type Track } from './store'
@@ -70,7 +70,7 @@ function NextDeparture({ flight, onOpenProject, onOpenHackathon }: { flight: Fli
   )
   return (
     <section className="next-departure" aria-label="Next departure">
-      <div className="nd-head"><p className="eyebrow">Next departure</p><StatusTag status={flight.status} /></div>
+      <div className="nd-head"><h1 className="eyebrow">Next departure</h1><StatusTag status={flight.status} /></div>
       <div className="nd-board"><FlapCountdown deadline={flight.deadline} rolling={flight.rolling} size="hero" /></div>
       <div className="nd-meta">
         <div className="nd-field"><span>Destination</span>{flight.hackathonId ? <button type="button" className="nd-link" onClick={() => onOpenHackathon(flight.hackathonId as string)}>{flight.label}<ArrowUpRight size={16} aria-hidden="true" /></button> : <strong>{flight.label}</strong>}</div>
@@ -119,10 +119,12 @@ function DepartureRow({ item, status, gates, index, onOpen, onOpenProject }: { i
 function DetailDrawer({ item, status, gates, flights, onClose, onUpdate, onOpenProject }: { item: Hackathon; status: FlightStatus; gates: Project[]; flights: Flight[]; onClose: () => void; onUpdate: (id: string, patch: Partial<Hackathon>) => void; onOpenProject: (id: string) => void }) {
   const completed = item.checklist.filter(Boolean).length
   const eventUrl = safeHttpsUrl(item.url)
+  const panel = useRef<HTMLElement>(null)
+  useFocusTrap(panel)
   return (
     <>
       <button type="button" className="drawer-backdrop" aria-label="Close details" onClick={onClose} />
-      <aside className="drawer" role="dialog" aria-modal="true" aria-label={`${item.name} details`}>
+      <aside ref={panel} className="drawer" role="dialog" aria-modal="true" aria-label={`${item.name} details`}>
         <div className="drawer-bar"><span className="eyebrow">Flight details</span><button type="button" className="icon-button" onClick={onClose} aria-label="Close" autoFocus><X size={18} /></button></div>
         <div className="drawer-body">
           <div className="drawer-tags"><StatusTag status={status} /><span className="flag-tag">{trackLabel(item.track)}</span></div>
@@ -172,13 +174,15 @@ function AddHackathonDialog({ onClose, onAdd }: { onClose: () => void; onAdd: (i
   const [form, setForm] = useState({ name: '', organizer: '', track: 'ai' as Track, prizeAmount: '', currency: 'USD', startDate: '', deadline: '', mode: 'Online', url: '' })
   const [error, setError] = useState('')
   const change = (field: keyof typeof form, value: string) => setForm((current) => ({ ...current, [field]: value }))
+  const panel = useRef<HTMLFormElement>(null)
+  useFocusTrap(panel)
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!safeHttpsUrl(form.url)) { setError('Enter a secure https:// event link.'); return }
     const location = form.mode.trim() && form.mode.trim().toLowerCase() !== 'online' ? form.mode.trim() : null
     onAdd({ id: `custom-${crypto.randomUUID()}`, name: form.name.trim(), organizer: form.organizer.trim(), track: form.track, prize: form.prizeAmount ? `${form.currency} ${Number(form.prizeAmount).toLocaleString('en-US')}` : 'TBA', startDate: form.startDate || null, deadline: form.deadline || null, rolling: false, format: location ? 'in-person' : 'online', location, country: null, url: form.url.trim(), source: 'manual', description: null, free: null, judgeScore: null, judgeIdea: null })
   }
-  return <div className="modal-layer" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}><form className="dialog" role="dialog" aria-modal="true" aria-labelledby="add-hackathon-title" onSubmit={submit}><div className="dialog-head"><div><p className="eyebrow">New departure</p><h2 id="add-hackathon-title">Add a hackathon</h2></div><button className="icon-button" type="button" onClick={onClose} aria-label="Close"><X size={18} /></button></div>
+  return <div className="modal-layer" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}><form ref={panel} className="dialog" role="dialog" aria-modal="true" aria-labelledby="add-hackathon-title" onSubmit={submit}><div className="dialog-head"><div><p className="eyebrow">New departure</p><h2 id="add-hackathon-title">Add a hackathon</h2></div><button className="icon-button" type="button" onClick={onClose} aria-label="Close"><X size={18} /></button></div>
     <div className="form-grid"><label className="field full">Hackathon name<input required autoFocus value={form.name} onChange={(event) => change('name', event.target.value)} placeholder="e.g. ETHGlobal Mumbai" /></label><label className="field">Organizer / platform<input required value={form.organizer} onChange={(event) => change('organizer', event.target.value)} placeholder="e.g. ETHGlobal" /></label><label className="field">Track<select value={form.track} onChange={(event) => change('track', event.target.value)}><option value="web3">Web3</option><option value="ai">AI</option><option value="both">Web3 + AI</option></select></label>
       <label className="field">Prize pool<input type="number" min="0" value={form.prizeAmount} onChange={(event) => change('prizeAmount', event.target.value)} placeholder="Optional" /></label><label className="field">Currency<select value={form.currency} onChange={(event) => change('currency', event.target.value)}><option>USD</option><option>INR</option><option>EUR</option><option>CAD</option><option>GBP</option></select></label>
       <label className="field">Start date<input type="date" value={form.startDate} onChange={(event) => change('startDate', event.target.value)} /></label><label className="field">End / deadline<input type="date" value={form.deadline} onChange={(event) => change('deadline', event.target.value)} /></label><label className="field">Mode or location<input value={form.mode} onChange={(event) => change('mode', event.target.value)} placeholder="Online or city" /></label><label className="field full">Official event link<input required type="url" value={form.url} onChange={(event) => change('url', event.target.value)} placeholder="https://" /></label></div>
@@ -211,6 +215,14 @@ export default function App() {
   function noteOpener() {
     if (!overlayOpen && document.activeElement instanceof HTMLElement && document.activeElement !== document.body) opener.current = document.activeElement
   }
+  // While a drawer or dialog is open the page behind it is inert (no focus, no clicks) and doesn't scroll.
+  const skipRef = useRef<HTMLAnchorElement>(null)
+  const topbarRef = useRef<HTMLElement>(null)
+  const mainRef = useRef<HTMLElement>(null)
+  useEffect(() => {
+    for (const element of [skipRef.current, topbarRef.current, mainRef.current]) if (element) element.inert = overlayOpen
+    document.body.classList.toggle('has-overlay', overlayOpen)
+  }, [overlayOpen])
   useEffect(() => {
     if (overlayOpen) return
     const element = opener.current
@@ -349,13 +361,13 @@ export default function App() {
   const visible = filtered.slice(0, limit)
 
   return <div className="app">
-    <a className="skip-link" href="#main">Skip to board</a>
-    <header className="topbar">
+    <a ref={skipRef} className="skip-link" href="#main">Skip to board</a>
+    <header ref={topbarRef} className="topbar">
       <div className="brand" aria-label="Hackathon HQ"><span className="brand-mark" aria-hidden="true">HQ</span><span className="brand-word">Hackathon HQ<small>Departures · Nick's team</small></span></div>
       <nav className="tabs" aria-label="Boards">{tabs.map((item) => <a key={item.id} href={`#${item.id}`} className="tab" aria-current={tab === item.id ? 'page' : undefined} onClick={() => setTab(item.id)}>{item.icon}<span>{item.label}</span><span className="tab-count">{item.count}</span></a>)}</nav>
       <WorldClock />
     </header>
-    <main id="main" className="page">
+    <main ref={mainRef} id="main" className="page">
       {tab === 'projects'
         ? <PassesView projects={projects} hackathons={board.items} targetFilter={projectTarget} onTargetFilter={setProjectTarget} onOpenProject={openProject} onOpenHackathon={openHackathon} onAdd={() => { noteOpener(); setShowAddProject(true) }} onReset={() => { setProjects(resetProjects()); setSelectedProjectId(null) }} />
         : <>

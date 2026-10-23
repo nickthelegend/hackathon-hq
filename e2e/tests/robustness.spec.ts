@@ -216,25 +216,26 @@ test.describe('overlays', () => {
       for (let i = 0; i < n; i++) { await page.keyboard.press('Tab'); expect(await inside(sel), `Tab ${i + 1} stays in ${sel}`).toBe(true); }
       for (let i = 0; i < 8; i++) { await page.keyboard.press('Shift+Tab'); expect(await inside(sel), `Shift+Tab ${i + 1} stays in ${sel}`).toBe(true); }
     };
-    const locked = () => page.evaluate(() => ({ body: getComputedStyle(document.body).overflowY, inert: (document.querySelector('main') as HTMLElement & { inert: boolean }).inert }));
+    // body has overflow-x: hidden, so its unlocked overflow-y computes to auto, never visible.
+    const locked = () => page.evaluate(() => ({ scrollLocked: getComputedStyle(document.body).overflowY === 'hidden', inert: (document.querySelector('main') as HTMLElement & { inert: boolean }).inert }));
 
     await departures(page).first().locator('.row-link').click();
     await tabAround('.drawer', 40);
-    expect(await locked()).toEqual({ body: 'hidden', inert: true });
+    expect(await locked()).toEqual({ scrollLocked: true, inert: true });
     await page.keyboard.press('Escape');
     await expect(page.getByRole('dialog')).toBeHidden();
-    expect(await locked()).toEqual({ body: 'visible', inert: false });
+    expect(await locked()).toEqual({ scrollLocked: false, inert: false });
 
     await page.getByRole('button', { name: 'Add hackathon' }).first().click();
     await tabAround('.dialog', 25);
-    expect(await locked()).toEqual({ body: 'hidden', inert: true });
+    expect(await locked()).toEqual({ scrollLocked: true, inert: true });
     await page.keyboard.press('Escape');
 
     await page.goto(BASE + '#projects');
     await page.locator('.pass-open').first().click();
     await tabAround('.drawer', 30);
     await page.keyboard.press('Escape');
-    expect(await locked()).toEqual({ body: 'visible', inert: false });
+    expect(await locked()).toEqual({ scrollLocked: false, inert: false });
   });
 });
 

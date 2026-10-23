@@ -1,7 +1,7 @@
-import { useMemo, useState, type FormEvent } from 'react'
+import { useMemo, useRef, useState, type FormEvent } from 'react'
 import { ArrowUpRight, ExternalLink, KeyRound, PlaneTakeoff, Plus, RotateCcw, Search, TicketsPlane, TriangleAlert, X } from 'lucide-react'
 import { type ProjectStatus } from './data/projects'
-import { deadlineMs, formatDate, safeHttpsUrl, useMinute } from './board'
+import { deadlineMs, formatDate, safeHttpsUrl, useFocusTrap, useMinute } from './board'
 import { DeadlineClock, FlapCountdown } from './shared'
 import { aka, blockedText, buildFlights, bundleHead, compareFlights, missingKeys, selfReview, shortName, type Flight } from './flights'
 import { passStatus, projectColumns, resolveTargets, type HackathonRef, type Project } from './store'
@@ -190,10 +190,12 @@ export function ProjectDrawer({ project, hackathons, onClose, onUpdate, onOpenHa
   const now = useMinute()
   const flights = buildFlights([project], new Map(hackathons.map((item) => [item.id, item])), now).sort(compareFlights)
   const status = passStatus(project, flights)
+  const panel = useRef<HTMLElement>(null)
+  useFocusTrap(panel)
   return (
     <>
       <button type="button" className="drawer-backdrop" aria-label="Close details" onClick={onClose} />
-      <aside className="drawer" role="dialog" aria-modal="true" aria-label={`${project.name} details`}>
+      <aside ref={panel} className="drawer" role="dialog" aria-modal="true" aria-label={`${project.name} details`}>
         <div className="drawer-bar"><span className="eyebrow">Pass details</span><button type="button" className="icon-button" onClick={onClose} aria-label="Close" autoFocus><X size={18} /></button></div>
         <div className="drawer-body">
           <div className="drawer-tags">{status && <StatusTag status={status} />}{project.flag && <span className="flag-tag">{project.flag}</span>}</div>
@@ -223,6 +225,8 @@ export function AddProjectDialog({ hackathons, onClose, onAdd }: { hackathons: H
   const [form, setForm] = useState({ name: '', pitch: '', hackathonId: '', status: 'idea' as ProjectStatus, repo: '', score: '', nextStep: '' })
   const [error, setError] = useState('')
   const change = (field: keyof typeof form, value: string) => setForm((current) => ({ ...current, [field]: value }))
+  const panel = useRef<HTMLFormElement>(null)
+  useFocusTrap(panel)
   // Open hackathons, soonest deadline first, so the likely target is near the top.
   const options = useMemo(() => {
     const now = Date.now()
@@ -248,7 +252,7 @@ export function AddProjectDialog({ hackathons, onClose, onAdd }: { hackathons: H
       notes: '',
     })
   }
-  return <div className="modal-layer" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}><form className="dialog" role="dialog" aria-modal="true" aria-labelledby="add-project-title" onSubmit={submit}><div className="dialog-head"><div><p className="eyebrow">New pass</p><h2 id="add-project-title">Add a project</h2></div><button className="icon-button" type="button" onClick={onClose} aria-label="Close"><X size={18} /></button></div>
+  return <div className="modal-layer" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}><form ref={panel} className="dialog" role="dialog" aria-modal="true" aria-labelledby="add-project-title" onSubmit={submit}><div className="dialog-head"><div><p className="eyebrow">New pass</p><h2 id="add-project-title">Add a project</h2></div><button className="icon-button" type="button" onClick={onClose} aria-label="Close"><X size={18} /></button></div>
     <div className="form-grid">
       <label className="field full">Project name<input required autoFocus value={form.name} onChange={(event) => change('name', event.target.value)} placeholder="e.g. Blackbox Receipts" /></label>
       <label className="field full">One-line pitch<input value={form.pitch} onChange={(event) => change('pitch', event.target.value)} placeholder="What it does, in one breath" /></label>

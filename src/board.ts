@@ -1,6 +1,6 @@
-// Shared non-component helpers: time, formatting and link safety. Kept out of the
+// Shared non-component helpers: time, formatting, link safety and overlay focus. Kept out of the
 // .tsx files so each of those exports only components (React fast refresh needs that).
-import { useSyncExternalStore } from 'react'
+import { useEffect, useSyncExternalStore, type RefObject } from 'react'
 
 export function formatDate(value: string | null): string {
   if (!value) return 'TBA'
@@ -74,4 +74,26 @@ export function safeHttpsUrl(value: unknown): string | null {
   } catch {
     return null
   }
+}
+
+const focusable = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+
+/** Tab and Shift+Tab wrap inside the element while it is mounted (drawers and dialogs). */
+export function useFocusTrap(ref: RefObject<HTMLElement | null>) {
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      const root = ref.current
+      if (event.key !== 'Tab' || !root) return
+      const items = [...root.querySelectorAll<HTMLElement>(focusable)].filter((item) => item.getClientRects().length > 0)
+      if (!items.length) return
+      const first = items[0]
+      const last = items[items.length - 1]
+      const active = document.activeElement
+      const outside = !root.contains(active)
+      if (event.shiftKey && (outside || active === first)) { event.preventDefault(); last.focus() }
+      else if (!event.shiftKey && (outside || active === last)) { event.preventDefault(); first.focus() }
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [ref])
 }
