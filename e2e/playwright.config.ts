@@ -2,7 +2,8 @@ import { defineConfig } from '@playwright/test';
 
 // Real Google Chrome (channel: 'chrome') against the production build served by `vite preview`
 // (./stack.sh). The app has no backend; every test starts from a fresh browser context, so the
-// board is the seed until the test changes it.
+// board is the seed until the test changes it. PW_CHANNEL picks another installed channel
+// (for example msedge, or chromium for Playwright's own build after `npx playwright install chromium`).
 export default defineConfig({
   testDir: './tests',
   globalSetup: './global-setup.ts',
@@ -13,7 +14,7 @@ export default defineConfig({
   retries: 0,
   reporter: [['list'], ['html', { open: 'never', outputFolder: 'playwright-report' }]],
   use: {
-    channel: 'chrome',
+    channel: process.env.PW_CHANNEL || 'chrome',
     headless: true,
     video: 'on',
     trace: 'on',
