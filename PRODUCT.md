@@ -20,17 +20,19 @@ Track hackathon opportunities from discovery through results, and keep the team'
 
 ## Positioning
 
-One kanban pipeline combines event details, deadline countdowns, prize information, team notes, and project readiness in a local-first dashboard.
+An airport departures board for hackathons: the next deadline we're flying to counts down in split flaps, every project × deadline pair is a flight with a status, and every project carries a boarding pass. Local-first, no backend.
 
 ## Operating Context
 
-The team evaluates Web3 and AI hackathons. The board starts with a curated JSON list and stores ongoing board changes in browser local storage.
+The team evaluates Web3 and AI hackathons. The board starts with curated seed files (`src/data/hackathons.json`, `src/data/projects.ts`) and stores only the team's own changes in browser local storage.
 
 ## Capabilities and Constraints
 
-- Six stages: Discovered, Shortlisted, Approved by Judge, Building, Submitted, and Results.
-- Users can move cards, search and filter opportunities, sort by deadline, add events, track checklist progress, and save notes.
-- No backend; local storage is the persistence layer. Seed data is maintained in `src/data/hackathons.json`.
+- Departures view: Next departure (split-flap countdown, destination, gate, UTC and IST closing time); Our flights with statuses Boarding, Delayed, On time, Gate closed, Departed and Cancelled, filterable by status; All departures with search, track, format, source, idea and stage filters, sort by Closes soonest (default), Closes latest or Judge score, closed events behind Show closed, 30 rows per page.
+- Boarding passes view (`#projects`): one pass per project with destinations, judge score and self-review (flagged when 2 or more apart), progress, stage, missing keys, bundle and head; filter by stage or destination, sort by next departure, judge score or progress.
+- Flight drawer: stage, judge score, six-step build checklist and team notes. Pass drawer: stage, judge score, progress, next step, https-only repo link and notes.
+- Users can add hackathons and projects; Reset to seed confirms and names what would be lost.
+- No backend; local storage is the persistence layer and holds only the user's changes. Seed facts always come from the seed files.
 - Event details must come from official event pages. Unknown values remain unset and display as TBA.
 
 ## Evidence on Hand
