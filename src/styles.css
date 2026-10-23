@@ -202,6 +202,14 @@ h1, h2, h3 { margin: 0; }
 .button.amber:hover { background: #ffd56f; }
 .button.ghost { border-color: var(--line-2); color: var(--ink-2); }
 .button.ghost:hover { border-color: var(--muted); color: var(--ink); }
+.button.danger { background: var(--red); color: var(--red-ink); }
+.button.danger:hover { background: #ff6a5f; }
+.board-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 20px; margin-top: 28px; padding-top: 16px; border-top: 1px solid var(--line); }
+.board-foot p { margin: 0; flex: 1 1 260px; color: var(--muted); font-size: 12.5px; }
+.dialog.is-confirm { width: min(460px, 100%); }
+.confirm-body { display: grid; gap: 10px; color: var(--ink-2); font-size: 14px; line-height: 1.5; }
+.confirm-body p { margin: 0; }
+.loss-list { display: grid; gap: 4px; margin: 0; padding: 10px 14px 10px 30px; background: var(--bg-deep); border: 1px solid var(--line-2); border-radius: 6px; font: 13px/1.5 var(--mono); color: var(--ink); }
 .button.more { display: flex; margin: 16px auto 0; }
 .head-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .icon-button { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 5px; color: var(--muted); }

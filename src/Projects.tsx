@@ -151,7 +151,7 @@ export function PassesView({ projects, hackathons, targetFilter, onTargetFilter,
         <h1>One pass per project</h1>
         <p className="view-sub">Gate, bundle head, self-review score and the exact keys still missing. Open a pass to edit its stage, progress or notes.</p>
       </div>
-      <div className="head-actions"><button type="button" className="button ghost" onClick={onReset}><RotateCcw size={15} aria-hidden="true" />Reset to seed</button><button type="button" className="button amber" onClick={onAdd}><Plus size={16} aria-hidden="true" />Add project</button></div>
+      <div className="head-actions"><button type="button" className="button amber" onClick={onAdd}><Plus size={16} aria-hidden="true" />Add project</button></div>
     </section>
     <div className="toolbar" role="search">
       <label className="search-field"><Search size={15} aria-hidden="true" /><input aria-label="Search projects" placeholder="Search passes" value={search} onChange={(event) => setSearch(event.target.value)} /></label>
@@ -166,6 +166,7 @@ export function PassesView({ projects, hackathons, targetFilter, onTargetFilter,
     {filtered.length
       ? <div className="pass-grid">{filtered.map((project) => <BoardingPass key={project.id} project={project} flights={flightsByProject.get(project.id) ?? []} onOpen={onOpenProject} onOpenHackathon={onOpenHackathon} />)}</div>
       : <div className="empty-state"><TicketsPlane size={28} aria-hidden="true" /><h2>{projects.length ? 'No passes match' : 'No passes issued yet'}</h2><p>{projects.length ? 'Nothing matches these filters.' : 'Add a project to issue its first boarding pass.'}</p>{projects.length ? <button type="button" className="button ghost" onClick={clearFilters}>Clear filters</button> : <button type="button" className="button amber" onClick={onAdd}><Plus size={16} aria-hidden="true" />Add project</button>}</div>}
+    <div className="board-foot"><p>Stage, progress, score, next step, repo, notes and custom projects are saved in this browser only.</p><button type="button" className="button ghost" onClick={onReset}><RotateCcw size={15} aria-hidden="true" />Reset to seed</button></div>
   </>
 }
 

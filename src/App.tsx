@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { ArrowUpRight, Check, ExternalLink, Info, PlaneTakeoff, Plus, RotateCcw, Search, TicketsPlane, X } from 'lucide-react'
 import { deadlineMs, formatDate, safeHttpsUrl, useFocusTrap, useMinute, zoneClock } from './board'
-import { DeadlineClock, FlapCountdown, SplitFlap } from './shared'
+import { ConfirmReset, DeadlineClock, FlapCountdown, SplitFlap } from './shared'
 import { AddProjectDialog, PassesView, ProjectDrawer } from './Projects'
-import { BOARD_KEY, checklistLabels, columns, ideaNames, loadBoard, loadProjects, patchHackathon, PROJECTS_KEY, projectColumns, resetProjects, saveBoard, saveProjects, starterItems, type ColumnId, type EventFormat, type Hackathon, type Project, type Track } from './store'
+import { BOARD_KEY, boardChanges, checklistLabels, columns, ideaNames, loadBoard, loadProjects, patchHackathon, PROJECTS_KEY, projectChanges, projectColumns, resetProjects, saveBoard, saveProjects, starterItems, type ColumnId, type EventFormat, type Hackathon, type Project, type Track } from './store'
 import { buildFlights, combineStatus, compareFlights, shortName, statusLabel, statusRule, type Flight, type FlightStatus } from './flights'
 import { StatusTag } from './StatusTag'
 
@@ -208,10 +208,11 @@ export default function App() {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
   const [showAddProject, setShowAddProject] = useState(false)
   const [projectTarget, setProjectTarget] = useState('all')
+  const [confirmReset, setConfirmReset] = useState<Tab | null>(null)
   const now = useMinute()
   // The control that opened the first drawer or dialog gets focus back when they have all closed.
   const opener = useRef<HTMLElement | null>(null)
-  const overlayOpen = selectedId !== null || selectedProjectId !== null || showAdd || showAddProject
+  const overlayOpen = selectedId !== null || selectedProjectId !== null || showAdd || showAddProject || confirmReset !== null
   function noteOpener() {
     if (!overlayOpen && document.activeElement instanceof HTMLElement && document.activeElement !== document.body) opener.current = document.activeElement
   }
@@ -255,14 +256,15 @@ export default function App() {
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
       if (event.key !== 'Escape') return
-      if (showAdd) setShowAdd(false)
+      if (confirmReset) setConfirmReset(null)
+      else if (showAdd) setShowAdd(false)
       else if (showAddProject) setShowAddProject(false)
       else if (selectedProjectId) setSelectedProjectId(null)
       else if (selectedId) setSelectedId(null)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [showAdd, showAddProject, selectedProjectId, selectedId])
+  }, [confirmReset, showAdd, showAddProject, selectedProjectId, selectedId])
 
   const hackathonMap = useMemo(() => new Map(board.items.map((item) => [item.id, item])), [board.items])
   const flights = useMemo(() => buildFlights(projects, hackathonMap, now).sort(compareFlights), [projects, hackathonMap, now])
@@ -325,9 +327,14 @@ export default function App() {
     setBoard((current) => ({ items: [{ ...input, status: 'discovered', notes: '', checklist: checklistLabels.map(() => false), edited: [] }, ...current.items] }))
     setShowAdd(false)
   }
-  function resetBoard() {
-    setBoard({ items: starterItems })
-    setSelectedId(null)
+  function askReset(which: Tab) {
+    noteOpener()
+    setConfirmReset(which)
+  }
+  function confirmResetBoard() {
+    if (confirmReset === 'projects') { setProjects(resetProjects()); setSelectedProjectId(null) }
+    else { setBoard({ items: starterItems }); setSelectedId(null) }
+    setConfirmReset(null)
   }
   function updateProject(id: string, patch: Partial<Project>) {
     setProjects((current) => current.map((project) => project.id === id ? { ...project, ...patch } : project))
@@ -369,7 +376,7 @@ export default function App() {
     </header>
     <main ref={mainRef} id="main" className="page">
       {tab === 'projects'
-        ? <PassesView projects={projects} hackathons={board.items} targetFilter={projectTarget} onTargetFilter={setProjectTarget} onOpenProject={openProject} onOpenHackathon={openHackathon} onAdd={() => { noteOpener(); setShowAddProject(true) }} onReset={() => { setProjects(resetProjects()); setSelectedProjectId(null) }} />
+        ? <PassesView projects={projects} hackathons={board.items} targetFilter={projectTarget} onTargetFilter={setProjectTarget} onOpenProject={openProject} onOpenHackathon={openHackathon} onAdd={() => { noteOpener(); setShowAddProject(true) }} onReset={() => askReset('projects')} />
         : <>
           <NextDeparture flight={nextFlight} onOpenProject={openProject} onOpenHackathon={openHackathon} />
           <section className="board" aria-labelledby="our-flights">
@@ -395,7 +402,7 @@ export default function App() {
           <section className="board" aria-labelledby="all-departures">
             <div className="board-head">
               <div><h2 id="all-departures">All departures</h2><p className="board-sub">{board.items.length} hackathons on the radar, soonest first.</p></div>
-              <div className="head-actions"><button type="button" className="button ghost" onClick={resetBoard}><RotateCcw size={15} aria-hidden="true" />Reset to seed</button><button type="button" className="button amber" onClick={openAdd}><Plus size={16} aria-hidden="true" />Add hackathon</button></div>
+              <div className="head-actions"><button type="button" className="button amber" onClick={openAdd}><Plus size={16} aria-hidden="true" />Add hackathon</button></div>
             </div>
             <div className="toolbar" role="search">
               <label className="search-field"><Search size={15} aria-hidden="true" /><input aria-label="Search hackathons" placeholder="Search destinations" value={search} onChange={(event) => { setSearch(event.target.value); setLimit(PAGE) }} /></label>
@@ -419,6 +426,7 @@ export default function App() {
                 : <div className="empty-state is-board"><Search size={24} aria-hidden="true" /><h3>No departures match</h3><p>{board.items.length ? 'Nothing on the board fits these filters.' : 'The board is empty. Add a hackathon to start.'}</p>{filtersOn ? <button type="button" className="button ghost" onClick={clearFilters}>Clear filters</button> : <button type="button" className="button amber" onClick={openAdd}><Plus size={16} aria-hidden="true" />Add hackathon</button>}</div>}
             </div>
             {filtered.length > visible.length && <button type="button" className="button ghost more" onClick={() => setLimit(limit + PAGE)}>Show {Math.min(PAGE, filtered.length - visible.length)} more departures<span className="muted"> ({filtered.length - visible.length} left)</span></button>}
+            <div className="board-foot"><p>Notes, ticks, stage and score edits and custom hackathons are saved in this browser only.</p><button type="button" className="button ghost" onClick={() => askReset('hackathons')}><RotateCcw size={15} aria-hidden="true" />Reset to seed</button></div>
           </section>
         </>}
       <footer className="foot"><span>Board saved in this browser.</span><span>Times in UTC and IST (UTC+5:30).</span></footer>
@@ -426,6 +434,7 @@ export default function App() {
     {selected && <DetailDrawer item={selected} status={statuses.get(selected.id) ?? 'scheduled'} gates={gatesFor(selected.id)} flights={flightsByHackathon.get(selected.id) ?? []} onClose={() => setSelectedId(null)} onUpdate={updateItem} onOpenProject={openProject} />}
     {selectedProject && <ProjectDrawer project={selectedProject} hackathons={board.items} onClose={() => setSelectedProjectId(null)} onUpdate={updateProject} onOpenHackathon={openHackathon} />}
     {showAdd && <AddHackathonDialog onClose={() => setShowAdd(false)} onAdd={addItem} />}
+    {confirmReset && <ConfirmReset board={confirmReset === 'projects' ? 'boarding passes' : 'departures board'} losses={confirmReset === 'projects' ? projectChanges(projects) : boardChanges(board.items)} onCancel={() => setConfirmReset(null)} onConfirm={confirmResetBoard} />}
     {showAddProject && <AddProjectDialog hackathons={board.items} onClose={() => setShowAddProject(false)} onAdd={addProject} />}
   </div>
 }

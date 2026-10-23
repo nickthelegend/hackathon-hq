@@ -93,6 +93,8 @@ test.describe('boarding passes', () => {
     await expect(page.getByRole('dialog').getByLabel('Notes')).toHaveValue('e2e pass note');
     await page.getByRole('dialog').getByRole('button', { name: 'Close', exact: true }).click();
     await page.getByRole('button', { name: 'Reset to seed' }).click();
+    await expect(page.getByRole('alertdialog')).toContainText('1 note');
+    await page.getByRole('alertdialog').getByRole('button', { name: 'Reset board' }).click();
     const title = (await page.locator('.pass-fields').first().textContent()) && (await page.locator('.pass', { has: page.locator(`#pass-${p.id}`) }).locator('.pass-fields div', { hasText: 'Stage' }).locator('dd').textContent());
     expect(title?.toLowerCase()).toBe(p.status);
   });

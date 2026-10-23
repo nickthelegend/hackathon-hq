@@ -97,3 +97,6 @@ export function useFocusTrap(ref: RefObject<HTMLElement | null>) {
     return () => document.removeEventListener('keydown', onKey)
   }, [ref])
 }
+
+/** "1 team note", "3 team notes". */
+export const plural = (count: number, one: string, many = `${one}s`) => `${count} ${count === 1 ? one : many}`

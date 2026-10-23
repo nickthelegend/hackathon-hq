@@ -1,5 +1,6 @@
-import { useState } from 'react'
-import { deadlineMs, remaining, useMinute, useReducedMotion, zoneClock } from './board'
+import { useRef, useState } from 'react'
+import { RotateCcw } from 'lucide-react'
+import { deadlineMs, remaining, useFocusTrap, useMinute, useReducedMotion, zoneClock } from './board'
 
 /**
  * One split-flap character. When the character changes, the old top leaf falls away and the
@@ -65,5 +66,27 @@ export function DeadlineClock({ deadline, rolling, compact = false }: { deadline
       <span className="dc-line"><b>{utc.time}</b><em>UTC</em><span>{utc.date}</span></span>
       <span className="dc-line dc-ist"><b>{ist.time}</b><em>IST</em><span>{ist.date}</span></span>
     </span>
+  )
+}
+
+/** Asks before Reset to seed and names exactly what would be lost. Cancel has focus, so Enter is safe. */
+export function ConfirmReset({ board, losses, onCancel, onConfirm }: { board: string; losses: string[]; onCancel: () => void; onConfirm: () => void }) {
+  const panel = useRef<HTMLDivElement>(null)
+  useFocusTrap(panel)
+  return (
+    <div className="modal-layer" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onCancel() }}>
+      <div ref={panel} className="dialog is-confirm" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-body">
+        <div className="dialog-head"><div><p className="eyebrow">Reset to seed</p><h2 id="confirm-title">Reset the {board}?</h2></div></div>
+        <div id="confirm-body" className="confirm-body">
+          {losses.length
+            ? <><p>The board goes back to the seed. This can't be undone; you will lose what is saved in this browser:</p><ul className="loss-list">{losses.map((loss) => <li key={loss}>{loss}</li>)}</ul></>
+            : <p>Nothing has been changed in this browser, so the board already matches the seed.</p>}
+        </div>
+        <div className="dialog-actions">
+          <button type="button" className="button ghost" onClick={onCancel} autoFocus>Cancel</button>
+          <button type="button" className="button danger" onClick={onConfirm}><RotateCcw size={15} aria-hidden="true" />Reset board</button>
+        </div>
+      </div>
+    </div>
   )
 }

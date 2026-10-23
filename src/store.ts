@@ -5,7 +5,7 @@
 // anything malformed is repaired or dropped, so a bad saved value can never blank the page.
 import seed from './data/hackathons.json'
 import { PROJECTS_SEED_VERSION, projectSeed, type ProjectSeed, type ProjectStatus, type ProjectTarget } from './data/projects'
-import { safeHttpsUrl } from './board'
+import { plural, safeHttpsUrl } from './board'
 import { combineStatus, type Flight } from './flights'
 
 export const BOARD_KEY = 'hackathon-hq-board-v3'
@@ -193,6 +193,22 @@ export function patchHackathon(item: Hackathon, patch: Partial<Hackathon>): Hack
   return { ...item, ...patch, edited: [...new Set([...(item.edited ?? []), ...touched])] }
 }
 
+const phrases = (counts: [number, string, string?][]) => counts.filter(([count]) => count > 0).map(([count, one, many]) => plural(count, one, many))
+
+/** What Reset to seed would throw away on the departures board, as short phrases ("2 team notes"). */
+export function boardChanges(items: Hackathon[]): string[] {
+  let notes = 0, ticks = 0, stages = 0, scores = 0, custom = 0
+  for (const item of items) {
+    const seedItem = seedById.get(item.id)
+    if (!seedItem) { custom++; continue }
+    if (item.notes.trim()) notes++
+    ticks += item.checklist.filter(Boolean).length
+    if (item.status !== seedItem.status) stages++
+    if (item.judgeScore !== seedItem.judgeScore) scores++
+  }
+  return phrases([[notes, 'team note'], [ticks, 'checklist tick'], [stages, 'stage change'], [scores, 'score edit'], [custom, 'custom hackathon']])
+}
+
 // ---------- Projects (Boarding passes) ----------
 
 export const projectColumns = [
@@ -282,6 +298,19 @@ export function loadProjects(): Project[] {
 export function saveProjects(items: Project[]) { write(PROJECTS_KEY, JSON.stringify({ version: PROJECTS_SEED_VERSION, items })) }
 
 export function resetProjects(): Project[] { return starterProjects }
+
+/** What Reset to seed would throw away on the passes board. */
+export function projectChanges(items: Project[]): string[] {
+  const seedProjects = new Map(starterProjects.map((item) => [item.id, item]))
+  let notes = 0, edited = 0, custom = 0
+  for (const item of items) {
+    const seedItem = seedProjects.get(item.id)
+    if (!seedItem) { custom++; continue }
+    if (item.notes.trim()) notes++
+    if (item.status !== seedItem.status || item.progress !== seedItem.progress || item.judgeScore !== seedItem.judgeScore || item.nextStep !== seedItem.nextStep || item.repo !== seedItem.repo) edited++
+  }
+  return phrases([[notes, 'note'], [edited, 'edited pass', 'edited passes'], [custom, 'custom project']])
+}
 
 /** Linked targets take their deadline from the hackathon card, so the countdown always matches the other board. */
 export function resolveTargets(project: Project, hackathons: Map<string, HackathonRef>): ResolvedTarget[] {

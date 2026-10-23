@@ -240,11 +240,13 @@ test.describe('departures board', () => {
     await expect(page.getByRole('dialog').getByLabel('Board stage')).toHaveValue('submitted');
     await expect(page.getByRole('dialog').getByLabel('Team notes')).toHaveValue('e2e note');
     // The backdrop closes it on desktop (on phones the drawer is full width, so the Close button);
-    // Reset to seed puts the stage back.
+    // Reset to seed (after its confirmation, which names the stage change) puts the stage back.
     if (isMobile(ti.project.name)) await page.getByRole('dialog').getByRole('button', { name: 'Close', exact: true }).click();
     else await page.getByRole('button', { name: 'Close details' }).click({ position: { x: 5, y: 5 } });
     await expect(page.getByRole('dialog')).toBeHidden();
     await page.getByRole('button', { name: 'Reset to seed' }).click();
+    await expect(page.getByRole('alertdialog')).toContainText('1 stage change');
+    await page.getByRole('alertdialog').getByRole('button', { name: 'Reset board' }).click();
     await page.locator('.row-link', { hasText: name }).first().click();
     await expect(page.getByRole('dialog').getByLabel('Board stage')).toHaveValue('discovered');
   });
